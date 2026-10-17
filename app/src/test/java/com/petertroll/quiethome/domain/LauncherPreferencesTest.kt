@@ -24,4 +24,21 @@ class LauncherPreferencesTest {
         assertEquals(listOf("Beta"), sections.favorites.map { it.displayLabel })
         assertEquals(listOf("Alpha", "Beta"), sections.allApps.map { it.displayLabel })
     }
+
+    @Test fun `recording launches updates count and latest time immutably`() {
+        val original = LauncherPreferences()
+        val updated = original.recordLaunch("pkg.app", 1234L).recordLaunch("pkg.app", 5678L)
+        assertEquals(2L, updated.launchCounts["pkg.app"])
+        assertEquals(5678L, updated.lastLaunchEpochMillis["pkg.app"])
+        assertTrue(original.launchCounts.isEmpty())
+    }
+
+    @Test fun `daily habit toggles only the selected day and name is trimmed`() {
+        val named = LauncherPreferences().renameHabit("  Go to the gym  ")
+        val done = named.toggleHabit(20_000L)
+        assertEquals("Go to the gym", named.habitName)
+        assertTrue(done.isHabitDone(20_000L))
+        assertFalse(done.isHabitDone(20_001L))
+        assertFalse(done.toggleHabit(20_000L).isHabitDone(20_000L))
+    }
 }

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Safe builds do not expose screens backed by removed special-access capabilities. -->
+    <bool name="special_access_features_available">false</bool>
+</resources>

@@ -51,4 +51,37 @@ class AppCatalogTest {
         assertEquals("a.FirstActivity", visible.single { it.packageName == "pkg.same" }.activityName)
         assertEquals("First", visible.single { it.packageName == "pkg.same" }.displayLabel)
     }
+
+    @Test fun `most used sorting ranks higher launch counts first with alphabetical ties`() {
+        val preferences = LauncherPreferences(
+            launchCounts = mapOf("pkg.z" to 4L, "pkg.a" to 4L, "pkg.e" to 1L)
+        )
+        val labels = AppCatalog(apps, preferences)
+            .browse("", AppSort.MOST_USED, AppFilter.ALL)
+            .map { it.displayLabel }
+        assertEquals(listOf("alpha", "Zebra", "Éclair", "com.example.blank"), labels)
+    }
+
+    @Test fun `recent sorting ranks latest launch first and never launched apps alphabetically`() {
+        val preferences = LauncherPreferences(
+            lastLaunchEpochMillis = mapOf("pkg.e" to 20L, "pkg.z" to 10L)
+        )
+        val labels = AppCatalog(apps, preferences)
+            .browse("", AppSort.RECENT, AppFilter.ALL)
+            .map { it.displayLabel }
+        assertEquals(listOf("Éclair", "Zebra", "alpha", "com.example.blank"), labels)
+    }
+
+    @Test fun `favorite and other filters are applied after normalized search`() {
+        val preferences = LauncherPreferences(favoritePackages = setOf("pkg.a", "pkg.z"))
+        val catalog = AppCatalog(apps, preferences)
+        assertEquals(
+            listOf("alpha", "Zebra"),
+            catalog.browse("a", AppSort.ALPHABETICAL, AppFilter.FAVORITES).map { it.displayLabel }
+        )
+        assertEquals(
+            listOf("com.example.blank", "Éclair"),
+            catalog.browse("", AppSort.ALPHABETICAL, AppFilter.OTHERS).map { it.displayLabel }
+        )
+    }
 }

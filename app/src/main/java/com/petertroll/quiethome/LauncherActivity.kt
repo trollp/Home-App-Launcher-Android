@@ -1,15 +1,22 @@
 package com.petertroll.quiethome
 
+import android.Manifest
 import android.app.role.RoleManager
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.AlarmClock
+import android.provider.MediaStore
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -21,6 +28,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -32,11 +40,14 @@ import androidx.core.widget.doAfterTextChanged
 import com.petertroll.quiethome.databinding.ActivityLauncherBinding
 import com.petertroll.quiethome.domain.AppCatalog
 import com.petertroll.quiethome.domain.AppEntry
+import com.petertroll.quiethome.domain.AppFilter
+import com.petertroll.quiethome.domain.AppSort
 import com.petertroll.quiethome.domain.AppTheme
 import com.petertroll.quiethome.domain.DisplayApp
 import com.petertroll.quiethome.domain.HomeSections
 import com.petertroll.quiethome.domain.LauncherPreferences
 import java.text.DateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.concurrent.Executors
 import kotlin.math.abs
@@ -49,16 +60,27 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetector
     private var preferences = LauncherPreferences()
     private var entries = emptyList<AppEntry>()
+    private var appFilter = AppFilter.ALL
+    private var torchCameraId: String? = null
+    private var torchEnabled = false
     private var catalogGeneration = 0
     private var receiverRegistered = false
     private var started = false
     private val catalogExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val torchPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            toggleTorch()
+        } else {
+            Toast.makeText(this, R.string.camera_permission_needed, Toast.LENGTH_SHORT).show()
+        }
+    }
     private val clockTick = object : Runnable {
         override fun run() {
             val now = Date()
             binding.clock.text = DateFormat.getTimeInstance(DateFormat.SHORT).format(now)
             binding.date.text = DateFormat.getDateInstance(DateFormat.FULL).format(now)
+            renderHabit()
             mainHandler.postDelayed(this, CLOCK_REFRESH_MS)
         }
     }
@@ -77,12 +99,23 @@ class LauncherActivity : AppCompatActivity() {
         setContentView(binding.root)
         scaleText(binding.root, preferences.textScale)
         ViewCompat.setAccessibilityHeading(binding.clock, true)
+        binding.clock.contentDescription = getString(R.string.open_clock)
         repository = AndroidAppRepository(this)
         appAdapter = AppListAdapter()
         binding.appList.adapter = appAdapter
 
         binding.appsButton.setOnClickListener { showDrawer(requestKeyboard = true) }
         binding.homeButton.setOnClickListener { showHome(clearSearch = true) }
+        binding.clock.setOnClickListener { openClock() }
+        binding.habitButton.setOnClickListener { toggleHabit() }
+        binding.habitButton.setOnLongClickListener {
+            showRenameHabit()
+            true
+        }
+        binding.cameraButton.setOnClickListener { openCamera() }
+        binding.torchButton.setOnClickListener { requestOrToggleTorch() }
+        binding.filterButton.setOnClickListener { showFilterMenu() }
+        binding.sortButton.setOnClickListener { showSortMenu() }
         binding.appearanceButton.setOnClickListener { showAppearanceMenu() }
         binding.permissionButton.setOnClickListener {
             startActivity(Intent(this, PermissionCenterActivity::class.java))
@@ -92,11 +125,18 @@ class LauncherActivity : AppCompatActivity() {
         binding.defaultHomeButton.setOnClickListener {
             startActivity(Intent(this, OnboardingActivity::class.java))
         }
-        binding.search.doAfterTextChanged { renderApps(catalog().search(it?.toString().orEmpty())) }
+        binding.search.doAfterTextChanged { renderBrowse() }
+        val specialAccessAvailable = resources.getBoolean(R.bool.special_access_features_available)
+        binding.permissionButton.isVisible = specialAccessAvailable
+        binding.usageDashboardButton.isVisible = specialAccessAvailable
+        binding.inboxButton.isVisible = specialAccessAvailable
         installBackHandling()
         installSwipeNavigation()
 
         val drawerActive = savedInstanceState?.getBoolean(STATE_DRAWER) == true
+        appFilter = savedInstanceState?.getInt(STATE_FILTER)
+            ?.let { AppFilter.entries.getOrNull(it) }
+            ?: AppFilter.ALL
         binding.search.setText(savedInstanceState?.getString(STATE_SEARCH).orEmpty())
         if (drawerActive) showDrawer(requestKeyboard = false) else showHome(clearSearch = false)
         maybeShowOnboarding()
@@ -114,7 +154,7 @@ class LauncherActivity : AppCompatActivity() {
         super.onResume()
         preferences = store.load()
         renderHome()
-        if (binding.drawerPanel.isVisible) renderApps(catalog().search(binding.search.text.toString()))
+        if (binding.drawerPanel.isVisible) renderBrowse()
         binding.defaultHomeButton.isVisible = !isDefaultHome()
         mainHandler.removeCallbacks(clockTick)
         clockTick.run()
@@ -126,6 +166,7 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        disableTorch()
         LaunchRouter.ownerStopped(this)
         started = false
         catalogGeneration++
@@ -144,6 +185,7 @@ class LauncherActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(STATE_DRAWER, binding.drawerPanel.isVisible)
         outState.putString(STATE_SEARCH, binding.search.text.toString())
+        outState.putInt(STATE_FILTER, appFilter.ordinal)
         super.onSaveInstanceState(outState)
     }
 
@@ -183,7 +225,7 @@ class LauncherActivity : AppCompatActivity() {
                 entries = loaded
                 renderHome()
                 if (binding.drawerPanel.isVisible) {
-                    renderApps(catalog().search(binding.search.text.toString()))
+                    renderBrowse()
                 }
             }
         }
@@ -192,6 +234,7 @@ class LauncherActivity : AppCompatActivity() {
     private fun catalog() = AppCatalog(entries, preferences)
 
     private fun renderHome() {
+        renderHabit()
         binding.favoriteList.removeAllViews()
         val favorites = HomeSections.from(catalog()).favorites
         if (favorites.isEmpty()) {
@@ -208,6 +251,14 @@ class LauncherActivity : AppCompatActivity() {
         )
         binding.emptyApps.isVisible = apps.isEmpty()
         binding.appList.isVisible = apps.isNotEmpty()
+    }
+
+    private fun renderBrowse() {
+        val filterNames = resources.getStringArray(R.array.app_filters)
+        val sortNames = resources.getStringArray(R.array.app_sorts)
+        binding.filterButton.text = getString(R.string.filter_label, filterNames[appFilter.ordinal])
+        binding.sortButton.text = getString(R.string.sort_label, sortNames[preferences.appSort.ordinal])
+        renderApps(catalog().browse(binding.search.text.toString(), preferences.appSort, appFilter))
     }
 
     private fun appRow(app: DisplayApp, recycled: TextView? = null): TextView =
@@ -237,6 +288,8 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun launch(app: DisplayApp) {
+        preferences = preferences.recordLaunch(app.packageName, System.currentTimeMillis())
+        store.save(preferences)
         LaunchRouter.fromLauncher(this, app.packageName, app.activityName, app.displayLabel)
     }
 
@@ -287,13 +340,13 @@ class LauncherActivity : AppCompatActivity() {
         preferences = newValue
         store.save(newValue)
         renderHome()
-        if (binding.drawerPanel.isVisible) renderApps(catalog().search(binding.search.text.toString()))
+        if (binding.drawerPanel.isVisible) renderBrowse()
     }
 
     private fun showDrawer(requestKeyboard: Boolean) {
         binding.homePanel.isVisible = false
         binding.drawerPanel.isVisible = true
-        renderApps(catalog().search(binding.search.text.toString()))
+        renderBrowse()
         if (requestKeyboard) {
             binding.search.requestFocus()
             binding.search.post {
@@ -325,6 +378,122 @@ class LauncherActivity : AppCompatActivity() {
                     6 -> update(preferences.copy(hiddenPackages = emptySet()))
                 }
             }.show()
+    }
+
+    private fun showFilterMenu() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.filter_apps)
+            .setSingleChoiceItems(R.array.app_filters, appFilter.ordinal) { dialog, which ->
+                appFilter = AppFilter.entries[which]
+                dialog.dismiss()
+                renderBrowse()
+            }
+            .show()
+    }
+
+    private fun showSortMenu() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sort_apps)
+            .setSingleChoiceItems(R.array.app_sorts, preferences.appSort.ordinal) { dialog, which ->
+                dialog.dismiss()
+                update(preferences.copy(appSort = AppSort.entries[which]))
+            }
+            .show()
+    }
+
+    private fun renderHabit() {
+        val done = preferences.isHabitDone(LocalDate.now().toEpochDay())
+        binding.habitButton.text = getString(
+            if (done) R.string.habit_button_done else R.string.habit_button_not_done,
+            preferences.habitName
+        )
+        binding.habitButton.contentDescription = getString(
+            if (done) R.string.habit_done else R.string.habit_not_done,
+            preferences.habitName
+        )
+        binding.habitButton.isSelected = done
+    }
+
+    private fun toggleHabit() {
+        update(preferences.toggleHabit(LocalDate.now().toEpochDay()))
+    }
+
+    private fun showRenameHabit() {
+        val input = EditText(this).apply {
+            setText(preferences.habitName)
+            selectAll()
+            hint = getString(R.string.habit_name_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.rename_habit)
+            .setView(input)
+            .setPositiveButton(R.string.save) { _, _ -> update(preferences.renameHabit(input.text.toString())) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openClock() {
+        val intents = listOf(Intent(AlarmClock.ACTION_SHOW_ALARMS), Intent(AlarmClock.ACTION_SET_ALARM))
+        val opened = intents.any { intent ->
+            try {
+                startActivity(intent)
+                true
+            } catch (_: ActivityNotFoundException) {
+                false
+            }
+        }
+        if (!opened) Toast.makeText(this, R.string.clock_unavailable, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openCamera() {
+        try {
+            startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.camera_unavailable, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun requestOrToggleTorch() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            toggleTorch()
+        } else {
+            torchPermission.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun toggleTorch() {
+        val cameraManager = getSystemService<CameraManager>() ?: return showTorchUnavailable()
+        try {
+            val cameraId = torchCameraId ?: cameraManager.cameraIdList.firstOrNull { id ->
+                cameraManager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            }?.also { torchCameraId = it } ?: return showTorchUnavailable()
+            torchEnabled = !torchEnabled
+            cameraManager.setTorchMode(cameraId, torchEnabled)
+            renderTorch()
+        } catch (_: Exception) {
+            torchEnabled = false
+            renderTorch()
+            showTorchUnavailable()
+        }
+    }
+
+    private fun disableTorch() {
+        if (!torchEnabled) return
+        val cameraId = torchCameraId ?: return
+        runCatching { getSystemService<CameraManager>()?.setTorchMode(cameraId, false) }
+        torchEnabled = false
+        if (::binding.isInitialized) renderTorch()
+    }
+
+    private fun renderTorch() {
+        binding.torchButton.text = getString(if (torchEnabled) R.string.torch_on else R.string.torch)
+        binding.torchButton.contentDescription = getString(if (torchEnabled) R.string.torch_on else R.string.torch_off)
+        binding.torchButton.isSelected = torchEnabled
+    }
+
+    private fun showTorchUnavailable() {
+        Toast.makeText(this, R.string.torch_unavailable, Toast.LENGTH_SHORT).show()
     }
 
     private fun saveAndRecreate(value: LauncherPreferences) {
@@ -370,7 +539,7 @@ class LauncherActivity : AppCompatActivity() {
 
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
                 if (e1 == null || abs(e2.x - e1.x) < dp(80) || abs(velocityX) < abs(velocityY)) return false
-                if (e2.x < e1.x) showDrawer(requestKeyboard = false) else showHome(clearSearch = true)
+                if (e2.x < e1.x) showDrawer(requestKeyboard = true) else showHome(clearSearch = true)
                 return true
             }
         })
@@ -401,5 +570,6 @@ class LauncherActivity : AppCompatActivity() {
         const val ROW_HEIGHT_DP = 56
         const val STATE_DRAWER = "drawer"
         const val STATE_SEARCH = "search"
+        const val STATE_FILTER = "filter"
     }
 }

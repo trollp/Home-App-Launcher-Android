@@ -22,8 +22,8 @@ android {
         }
         create("safe") {
             dimension = "capabilities"
-            versionCode = 2
-            versionName = "0.9.1-safe1"
+            versionCode = 3
+            versionName = "0.9.2-safe2"
         }
     }
     buildTypes {

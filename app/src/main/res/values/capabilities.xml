@@ -1,0 +1,3 @@
+<resources>
+    <bool name="special_access_features_available">true</bool>
+</resources>

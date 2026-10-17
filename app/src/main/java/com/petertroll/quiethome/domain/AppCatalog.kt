@@ -20,12 +20,36 @@ class AppCatalog(
 
     fun favorites(): List<DisplayApp> = visibleApps().filter { it.isFavorite }
 
-    fun search(query: String): List<DisplayApp> {
+    fun search(query: String): List<DisplayApp> = browse(query, AppSort.ALPHABETICAL, AppFilter.ALL)
+
+    fun browse(query: String, sort: AppSort, filter: AppFilter): List<DisplayApp> {
         val needle = normalize(query.trim())
-        if (needle.isEmpty()) return visibleApps()
-        return visibleApps().filter {
-            normalize(it.displayLabel).contains(needle) || normalize(it.packageName).contains(needle)
+        val filtered = visibleApps().asSequence()
+            .filter {
+                needle.isEmpty() || normalize(it.displayLabel).contains(needle) ||
+                    normalize(it.packageName).contains(needle)
+            }
+            .filter {
+                when (filter) {
+                    AppFilter.ALL -> true
+                    AppFilter.FAVORITES -> it.isFavorite
+                    AppFilter.OTHERS -> !it.isFavorite
+                }
+            }
+            .toList()
+        val alphabetical = compareBy<DisplayApp> { normalize(it.displayLabel) }
+            .thenBy { it.packageName }
+            .thenBy { it.activityName }
+        val comparator = when (sort) {
+            AppSort.ALPHABETICAL -> alphabetical
+            AppSort.MOST_USED -> compareByDescending<DisplayApp> {
+                preferences.launchCounts[it.packageName] ?: 0L
+            }.then(alphabetical)
+            AppSort.RECENT -> compareByDescending<DisplayApp> {
+                preferences.lastLaunchEpochMillis[it.packageName] ?: 0L
+            }.then(alphabetical)
         }
+        return filtered.sortedWith(comparator)
     }
 
     private fun toDisplayApp(entry: AppEntry): DisplayApp {

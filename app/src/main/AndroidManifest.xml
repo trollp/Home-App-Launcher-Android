@@ -3,6 +3,10 @@
     <!-- User grants this app-op from Settings; it is optional and daily limits fail open. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Requested at runtime only if the user taps the local torch control. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <!-- Experimental status only; no in-app request. Advanced users may grant it explicitly with ADB. -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
 
@@ -18,6 +22,7 @@
         <intent><action android:name="android.intent.action.DIAL" /><data android:scheme="tel" /></intent>
         <intent><action android:name="android.intent.action.SET_ALARM" /></intent>
         <intent><action android:name="android.intent.action.SHOW_ALARMS" /></intent>
+        <intent><action android:name="android.media.action.STILL_IMAGE_CAMERA" /></intent>
         <intent><action android:name="android.intent.action.INSTALL_PACKAGE" /><data android:mimeType="application/vnd.android.package-archive" /></intent>
     </queries>
 

@@ -14,7 +14,12 @@ class PreferencesCodecTest {
             hiddenPackages = setOf("b"),
             aliases = mapOf("a" to "Alpha"),
             theme = AppTheme.DARK,
-            textScale = 1.25f
+            textScale = 1.25f,
+            appSort = AppSort.MOST_USED,
+            launchCounts = mapOf("a" to 3L),
+            lastLaunchEpochMillis = mapOf("a" to 1234L),
+            habitName = "Go to the gym",
+            habitDoneEpochDay = 20_000L
         )
         assertEquals(preferences, PreferencesCodec.decode(PreferencesCodec.encode(preferences)))
         assertEquals(AppTheme.SYSTEM, PreferencesCodec.decode("{\"theme\":\"INVALID\"}").theme)
