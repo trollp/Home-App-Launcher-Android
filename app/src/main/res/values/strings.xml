@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">Quiet Home</string>
+    <string name="favorites">Favorites</string>
+    <string name="no_favorites">Long-press an app to add a favorite.</string>
+    <string name="all_apps">All apps</string>
+    <string name="open_apps">Open all apps</string>
+    <string name="search_apps">Search apps</string>
+    <string name="back_home">Back to home</string>
+    <string name="launcher_settings">Appearance</string>
+    <string name="choose_home">Choose default Home</string>
+    <string name="no_apps_found">No apps found.</string>
+    <string name="no_matching_apps">No matching apps.</string>
+    <string name="open_app">Open %1$s</string>
+    <string name="add_favorite">Add favorite</string>
+    <string name="remove_favorite">Remove favorite</string>
+    <string name="rename">Rename</string>
+    <string name="hide">Hide</string>
+    <string name="app_info">App info</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="app_name_hint">App name</string>
+    <string name="rename_app">Rename %1$s</string>
+    <string name="save">Save</string>
+    <string name="use_original">Use original</string>
+    <string name="cancel">Cancel</string>
+    <string name="appearance_visibility">Appearance and visibility</string>
+    <string name="follow_system_theme">Follow system theme</string>
+    <string name="light_theme">Light theme</string>
+    <string name="dark_theme">Dark theme</string>
+    <string name="small_text">Small text</string>
+    <string name="default_text">Default text</string>
+    <string name="large_text">Large text</string>
+    <string name="show_hidden_apps">Show all hidden apps</string>
+    <string name="launch_failed">Couldn’t open %1$s.</string>
+    <string name="onboarding_message">Make Quiet Home your Home app to see this calm, local app list when you press Home. You can switch Home apps later in system settings.</string>
+    <string name="choose_quiet_home">Choose Quiet Home</string>
+    <string name="not_now">Not now</string>
+    <string-array name="appearance_actions">
+        <item>@string/follow_system_theme</item>
+        <item>@string/light_theme</item>
+        <item>@string/dark_theme</item>
+        <item>@string/small_text</item>
+        <item>@string/default_text</item>
+        <item>@string/large_text</item>
+        <item>@string/show_hidden_apps</item>
+    </string-array>
+</resources>

@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.QuietHome" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/quiet_primary</item>
+        <item name="colorPrimaryVariant">@color/quiet_primary</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:navigationBarColor">?android:colorBackground</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

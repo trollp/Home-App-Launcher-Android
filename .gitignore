@@ -1,0 +1,7 @@
+# Quiet Home build outputs
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
