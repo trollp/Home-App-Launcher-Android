@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/notification_filter_settings" android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/notification_filter_disclosure" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/retention_period" android:textStyle="bold" />
+  <Spinner android:id="@+id/retentionSpinner" android:layout_width="match_parent" android:layout_height="48dp" />
+  <TextView android:id="@+id/loading" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/loading_apps" />
+  <LinearLayout android:id="@+id/appModes" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+  <Button android:id="@+id/doneButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/done" />
+ </LinearLayout>
+</ScrollView>

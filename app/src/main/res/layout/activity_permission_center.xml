@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+  <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/permissions_title" android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/permissions_intro" />
+  <TextView android:id="@+id/homeStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" />
+  <Button android:id="@+id/homeButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_home_settings" />
+  <TextView android:id="@+id/usageStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/usageButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_usage_settings" />
+  <Button android:id="@+id/usageDashboardButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_usage_dashboard" />
+  <TextView android:id="@+id/notificationAccessStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/notificationAccessButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_notification_access" />
+  <Button android:id="@+id/notificationSettingsButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/notification_filter_settings" />
+  <Button android:id="@+id/notificationInboxButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/notification_inbox" />
+  <TextView android:id="@+id/notificationStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/notificationButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/allow_reminders" />
+  <TextView android:id="@+id/accessibilityStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/accessibilityButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_accessibility_settings" />
+  <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/externalEnforcementSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/external_enforcement_opt_in" />
+  <TextView android:id="@+id/grayscaleStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/grayscaleButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/configure_grayscale" />
+  <Button android:id="@+id/focusButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/start_focus" />
+  <Button android:id="@+id/endFocusButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/end_focus" />
+  <Button android:id="@+id/doneButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/not_now" />
+ </LinearLayout>
+</ScrollView>

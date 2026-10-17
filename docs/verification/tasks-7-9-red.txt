@@ -1,0 +1,142 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+
+> Task :app:compileDebugUnitTestKotlin
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:7:26 Unresolved reference: GrayscalePolicy
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:10:22 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:11:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:12:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:13:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:13:79 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:17:22 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:18:25 Overload resolution ambiguity: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:18:48 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:18:89 Unresolved reference: it
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:22:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:22:72 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:23:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:23:74 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:27:22 Unresolved reference: GrayscaleConfig
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:28:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:29:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:30:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/GrayscalePolicyTest.kt:31:22 Unresolved reference: GrayscaleDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:8:22 Unresolved reference: NotificationAction
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:8:48 Unresolved reference: NotificationRules
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:8:75 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:12:21 Unresolved reference: NotificationRules
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:12:52 Unresolved reference: NotificationMode
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:12:83 Unresolved reference: NotificationMode
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:13:22 Unresolved reference: NotificationAction
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:13:72 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:14:22 Unresolved reference: NotificationAction
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:14:67 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:18:21 Unresolved reference: NotificationRules
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:18:52 Unresolved reference: NotificationMode
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:20:13 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:20:53 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:21:13 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:21:54 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:22:13 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:22:55 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:23:13 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:23:66 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:24:13 Unresolved reference: NotificationSignal
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:25:11 Overload resolution ambiguity: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:25:34 Unresolved reference: NotificationAction
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:25:73 Unresolved reference: it
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:29:21 Unresolved reference: NotificationRules
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:29:52 Unresolved reference: NotificationMode
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:30:29 Unresolved reference: NotificationRulesCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:30:59 Unresolved reference: NotificationRulesCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:31:22 Unresolved reference: NotificationRules
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:31:43 Unresolved reference: NotificationRulesCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:35:23 Unresolved reference: NotificationRulesCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:37:22 Unresolved reference: NotificationMode
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:44:13 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:45:13 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:46:13 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:47:13 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:49:20 Unresolved reference: NotificationInboxPolicy
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:50:54 Unresolved reference: it
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:55:21 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:58:9 None of the following functions can be called with the arguments supplied: 
+public open fun assertEquals(p0: Any!, p1: Any!): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Array<(out) Any!>!, p1: Array<(out) Any!>!): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Double, p1: Double): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Long, p1: Long): Unit defined in org.junit.Assert
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:58:32 Unresolved reference: InboxItem
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:58:46 Unresolved reference: NotificationInboxCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:59:9 None of the following functions can be called with the arguments supplied: 
+public open fun assertEquals(p0: Any!, p1: Any!): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Array<(out) Any!>!, p1: Array<(out) Any!>!): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Double, p1: Double): Unit defined in org.junit.Assert
+public open fun assertEquals(p0: Long, p1: Long): Unit defined in org.junit.Assert
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:59:37 Unresolved reference: NotificationInboxCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/NotificationRulesTest.kt:59:67 Unresolved reference: NotificationInboxCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:13:22 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:15:20 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:16:14 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:22:22 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:23:13 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:24:13 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:25:13 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:26:15 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:27:63 Unresolved reference: it
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:32:20 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:32:52 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:36:22 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:36:101 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:44:22 Unresolved reference: UsageSummary
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:45:13 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:45:51 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:45:85 Unresolved reference: UsageInterval
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/UsageSummaryTest.kt:46:15 Unresolved reference: UsageSummary
+
+> Task :app:compileDebugUnitTestKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugUnitTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 31s
+24 actionable tasks: 2 executed, 22 up-to-date

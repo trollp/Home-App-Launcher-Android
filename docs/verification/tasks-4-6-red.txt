@@ -1,0 +1,120 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+
+> Task :app:compileDebugUnitTestKotlin
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:8:26 Unresolved reference: BlockPolicy
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:12:20 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:13:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:13:96 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:14:22 Unresolved reference: BlockReason
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:14:84 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:14:124 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:15:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:15:107 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:19:52 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:19:84 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:20:22 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:20:42 Unresolved reference: UsageWarning
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:24:24 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:24:37 Unresolved reference: DaySet
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:25:24 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:25:37 Unresolved reference: DaySet
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:26:20 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:27:22 Unresolved reference: BlockReason
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:27:81 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:27:133 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:29:22 Unresolved reference: BlockReason
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:29:81 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:29:122 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:30:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:30:110 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:34:20 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:34:47 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:34:60 Unresolved reference: DaySet
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:35:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:35:108 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:36:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:36:108 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:37:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:37:119 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:38:56 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:38:125 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:42:23 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:43:22 Unresolved reference: BlockReason
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:43:72 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:43:118 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:44:50 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:44:137 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:45:50 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:45:131 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:49:22 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:49:97 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:49:110 Unresolved reference: DaySet
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:50:23 Unresolved reference: EvaluationContext
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/BlockPolicyTest.kt:52:126 Unresolved reference: BlockDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:7:26 Unresolved reference: LaunchPolicy
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:10:22 Unresolved reference: LaunchDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:10:91 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:14:22 Unresolved reference: LaunchDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:14:86 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:18:22 Unresolved reference: LaunchDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:18:73 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:19:22 Unresolved reference: LaunchDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:19:83 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:20:22 Unresolved reference: LaunchDecision
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/LaunchPolicyTest.kt:20:87 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:8:21 Unresolved reference: RulesState
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:9:43 Unresolved reference: AppRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:9:87 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:9:100 Unresolved reference: DaySet
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:14:29 Unresolved reference: RuleCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:14:46 Unresolved reference: RuleCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:18:22 Unresolved reference: RulesState
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:18:36 Unresolved reference: RuleCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:19:23 Unresolved reference: RuleCodec
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:25:22 Unresolved reference: ScheduleRule
+e: file:///home/troll/quiet-home-launcher/app/src/test/java/com/petertroll/quiethome/domain/RuleCodecTest.kt:25:35 Unresolved reference: DaySet
+
+> Task :app:compileDebugUnitTestKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugUnitTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 45s
+24 actionable tasks: 2 executed, 22 up-to-date

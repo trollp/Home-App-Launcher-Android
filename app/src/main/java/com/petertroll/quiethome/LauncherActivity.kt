@@ -84,6 +84,11 @@ class LauncherActivity : AppCompatActivity() {
         binding.appsButton.setOnClickListener { showDrawer(requestKeyboard = true) }
         binding.homeButton.setOnClickListener { showHome(clearSearch = true) }
         binding.appearanceButton.setOnClickListener { showAppearanceMenu() }
+        binding.permissionButton.setOnClickListener {
+            startActivity(Intent(this, PermissionCenterActivity::class.java))
+        }
+        binding.usageDashboardButton.setOnClickListener { startActivity(Intent(this, UsageDashboardActivity::class.java)) }
+        binding.inboxButton.setOnClickListener { startActivity(Intent(this, NotificationInboxActivity::class.java)) }
         binding.defaultHomeButton.setOnClickListener {
             startActivity(Intent(this, OnboardingActivity::class.java))
         }
@@ -99,6 +104,7 @@ class LauncherActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        LaunchRouter.ownerStarted(this)
         started = true
         registerPackageReceiver()
         refreshCatalog()
@@ -120,6 +126,7 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        LaunchRouter.ownerStopped(this)
         started = false
         catalogGeneration++
         if (receiverRegistered) {
@@ -230,14 +237,14 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun launch(app: DisplayApp) {
-        val launched = repository.launch(AppEntry(app.packageName, app.activityName, app.displayLabel))
-        if (!launched) Toast.makeText(this, getString(R.string.launch_failed, app.displayLabel), Toast.LENGTH_SHORT).show()
+        LaunchRouter.fromLauncher(this, app.packageName, app.activityName, app.displayLabel)
     }
 
     private fun showAppActions(app: DisplayApp) {
         val favoriteAction = getString(if (app.isFavorite) R.string.remove_favorite else R.string.add_favorite)
         val actions = arrayOf(
             favoriteAction,
+            getString(R.string.configure_limits),
             getString(R.string.rename),
             getString(R.string.hide),
             getString(R.string.app_info),
@@ -248,10 +255,13 @@ class LauncherActivity : AppCompatActivity() {
             .setItems(actions) { _, which ->
                 when (which) {
                     0 -> update(preferences.toggleFavorite(app.packageName))
-                    1 -> showRename(app)
-                    2 -> update(preferences.hide(app.packageName))
-                    3 -> repository.openInfo(app.packageName)
-                    4 -> repository.requestUninstall(app.packageName)
+                    1 -> startActivity(Intent(this, AppRulesActivity::class.java)
+                        .putExtra(AppRulesActivity.EXTRA_PACKAGE, app.packageName)
+                        .putExtra(AppRulesActivity.EXTRA_LABEL, app.displayLabel))
+                    2 -> showRename(app)
+                    3 -> update(preferences.hide(app.packageName))
+                    4 -> repository.openInfo(app.packageName)
+                    5 -> repository.requestUninstall(app.packageName)
                 }
             }.show()
     }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+  <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+  <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/gateSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/intentional_gate" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/opening_delay" />
+  <Spinner android:id="@+id/delaySpinner" android:layout_width="match_parent" android:layout_height="48dp" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/session_reminder" />
+  <Spinner android:id="@+id/sessionSpinner" android:layout_width="match_parent" android:layout_height="48dp" />
+  <EditText android:id="@+id/promptInput" android:layout_width="match_parent" android:layout_height="56dp" android:hint="@string/intent_prompt_hint" android:inputType="textCapSentences" android:maxLength="80" android:maxLines="2" android:importantForAutofill="no" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/daily_limit" />
+  <Spinner android:id="@+id/limitSpinner" android:layout_width="match_parent" android:layout_height="48dp" />
+  <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/scheduleSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/block_schedule" />
+  <Spinner android:id="@+id/daySpinner" android:layout_width="match_parent" android:layout_height="48dp" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/schedule_hint" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+   <EditText android:id="@+id/startHour" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:hint="@string/start_hour" android:inputType="number" android:importantForAutofill="no" />
+   <EditText android:id="@+id/endHour" android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:hint="@string/end_hour" android:inputType="number" android:importantForAutofill="no" />
+  </LinearLayout>
+  <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/focusSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/block_during_focus" />
+  <TextView android:id="@+id/usageNote" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/usage_limits_note" />
+  <Button android:id="@+id/saveButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="24dp" android:text="@string/save" />
+  <Button android:id="@+id/cancelButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="56dp" android:text="@string/cancel" />
+ </LinearLayout>
+</ScrollView>

@@ -34,6 +34,101 @@
     <string name="onboarding_message">Make Quiet Home your Home app to see this calm, local app list when you press Home. You can switch Home apps later in system settings.</string>
     <string name="choose_quiet_home">Choose Quiet Home</string>
     <string name="not_now">Not now</string>
+    <string name="permission_center">Permissions &amp; focus</string>
+    <string name="configure_limits">Mindful opening &amp; limits</string>
+    <string name="mindful_open_title">Open %1$s mindfully?</string>
+    <string name="default_intent_prompt">Take a breath. Is this what you intend to do?</string>
+    <string name="open_now">Open now</string>
+    <string name="bypass_once">Bypass once</string>
+    <string name="bypass_explanation">This skips only this countdown. Your limits and future gates remain active.</string>
+    <plurals name="seconds_remaining"><item quantity="one">%d second remaining</item><item quantity="other">%d seconds remaining</item></plurals>
+    <string name="reminder_permission_missing">The app opened, but no reminder was scheduled because notifications are not allowed.</string>
+    <string name="an_app">your app</string>
+    <string name="session_finished">Session complete</string>
+    <string name="session_finished_body">Your planned time in %1$s has ended.</string>
+    <string name="session_reminders">Session reminders</string>
+    <string name="app_paused">%1$s is paused</string>
+    <string name="daily_limit_reason">Today’s limit has been reached.</string>
+    <string name="schedule_reason">This app is paused during its scheduled quiet window.</string>
+    <string name="focus_reason">Your focus session is still active.</string>
+    <string name="override_five_minutes">Allow for 5 minutes</string>
+    <plurals name="override_wait"><item quantity="one">Wait %d second to override</item><item quantity="other">Wait %d seconds to override</item></plurals>
+    <string name="go_back">Go back</string>
+    <string name="usage_fail_open">Usage access is off, so Quiet Home did not enforce the daily limit.</string>
+    <string name="permissions_title">Permissions &amp; focus</string>
+    <string name="permissions_intro">Everything is optional. Quiet Home remains usable if you choose Not now. Grant only features you want.</string>
+    <string name="default_home_explanation">Default Home: lets Quiet Home appear when you press Home.</string>
+    <string name="usage_explanation">Usage access: measures today’s app time for daily limits. Without it, limits fail open.</string>
+    <string name="notification_access_explanation">Notification access: enables your local allow, batch, and silence choices. Critical notifications are left alone.</string>
+    <string name="notification_permission_explanation">Notification permission: allows approximate local session-end reminders and rate-limited warnings when usage limits cannot be enforced.</string>
+    <string name="accessibility_explanation">Accessibility: optional external-app enforcement. It observes foreground package changes only; rules fail open on errors.</string>
+    <string name="grayscale_explanation">Experimental grayscale: optional, device-dependent secure color correction for selected apps. It needs an explicit ADB grant.</string>
+    <string name="granted">Granted</string><string name="not_enabled">Not enabled</string>
+    <string name="open_home_settings">Choose Home app</string><string name="open_usage_settings">Open usage access</string>
+    <string name="open_notification_access">Review notification access</string><string name="allow_reminders">Allow reminder notifications</string>
+    <string name="open_accessibility_settings">Open accessibility settings</string><string name="external_enforcement_opt_in">I opt in to external enforcement</string>
+    <string name="start_focus">Start 25-minute focus</string><string name="end_focus">End focus</string>
+    <string name="accessibility_service_name">Quiet Home optional enforcement</string>
+    <string name="accessibility_service_description">Optionally redirects configured, blocked apps to a calm explanation. Safe system and input apps are ignored. Enable only if you want external enforcement.</string>
+    <string name="intentional_gate">Use intentional opening gate</string><string name="opening_delay">Opening delay</string>
+    <string name="session_reminder">Optional approximate session reminder</string><string name="intent_prompt_hint">Intent prompt (optional)</string>
+    <string name="daily_limit">Daily limit</string><string name="block_schedule">Use a quiet schedule</string>
+    <string name="schedule_hint">Blocked from start hour (inclusive) to end hour (exclusive), 0–23. Crossing midnight is supported. Start and end must differ.</string>
+    <string name="start_hour">Start hour</string><string name="end_hour">End hour</string><string name="block_during_focus">Block during focus sessions</string>
+    <string name="usage_limits_note">Usage access is off. Daily limits are saved but will fail open until you grant it in Permissions.</string>
+    <string name="usage_limits_ready">Usage access is ready for daily limits.</string><string name="rules_for">Settings for %1$s</string>
+    <plurals name="seconds_value"><item quantity="one">%d second</item><item quantity="other">%d seconds</item></plurals>
+    <plurals name="minutes_value"><item quantity="one">%d minute</item><item quantity="other">%d minutes</item></plurals>
+    <string name="none">None</string>
+    <string name="invalid_schedule">Enter different start and end hours from 0 to 23.</string>
+
+    <string name="limit_warnings">Daily limit warnings</string>
+    <string name="daily_limits_unavailable">Daily limits unavailable</string>
+    <string name="status_format">%1$s\n%2$s</string>
+    <string name="default_start_hour">22</string><string name="default_end_hour">7</string>
+    <string name="done">Done</string>
+    <string name="usage_dashboard">Usage dashboard</string>
+    <string name="open_usage_dashboard">View usage dashboard</string>
+    <string name="usage_estimate_note">Figures are Android estimates and may differ from what an app reports. Everything stays on this device.</string>
+    <string name="loading_usage">Loading today’s estimate…</string>
+    <string name="usage_permission_needed">Usage access is off. Enable it to see today and the seven-day trend. Quiet Home remains usable without it.</string>
+    <string name="no_usage_today">No app usage was reported today.</string>
+    <string name="no_usage_data">Android returned no usage records. You can retry or review usage access.</string>
+    <string name="usage_query_error">Quiet Home could not read usage data. You can retry or review usage access.</string>
+    <string name="retry">Retry</string>
+    <string name="today_total_format">Today: %1$s</string>
+    <string name="by_app">By app</string>
+    <string name="seven_day_trend">Seven-day trend</string>
+    <string name="usage_app_row">%1$s  ·  %2$s</string>
+    <string name="usage_trend_row">%1$s  %2$s  %3$s</string>
+    <string name="hours_minutes">%1$d h %2$d min</string>
+    <string name="notification_listener_name">Quiet Home local notification filter</string>
+    <string name="notification_inbox">Notification inbox</string>
+    <string name="inbox_explanation">Batched notifications are stored only on this device. Tap an item to open its source app; Quiet Home cannot safely replay its original action. Long-press an item to clear it.</string>
+    <string name="inbox_empty">No batched notifications.</string>
+    <string name="clear_inbox">Clear all</string>
+    <string name="notification_filter_settings">Notification filter settings</string>
+    <string name="notification_no_title">Notification</string>
+    <string name="inbox_item_format">%1$s\n%2$s\n%3$s</string>
+    <string name="inbox_group_format">%1$s · %2$s</string>
+    <string name="source_app_unavailable">The source app is unavailable.</string>
+    <string name="notification_filter_disclosure">Default is Allow. Batch cancels a notification after minimal local metadata is saved. Silence cancels it without saving content. Calls, alarms, media, navigation, system, ongoing, foreground-service, safety, and Quiet Home notifications are always allowed when detectable.</string>
+    <string name="retention_period">Keep batched items for</string>
+    <string name="loading_apps">Loading apps…</string>
+    <plurals name="days_value"><item quantity="one">%d day</item><item quantity="other">%d days</item></plurals>
+    <string-array name="notification_modes"><item>Allow</item><item>Batch to inbox</item><item>Silence without storing</item></string-array>
+    <string name="configure_grayscale">Configure experimental grayscale</string>
+    <string name="experimental_grayscale">Experimental grayscale</string>
+    <string name="grayscale_disclosure">Disabled by default. Ordinary apps cannot apply per-app grayscale. This sideload-only experiment uses WRITE_SECURE_SETTINGS solely for Android’s secure daltonizer/color-correction settings when you grant it with ADB. Accessibility foreground events choose selected apps. Values vary by device/OEM, so it may not work and is not Play Store-compatible. Quiet Home captures and restores prior values when possible.</string>
+    <string name="secure_settings_granted">ADB permission granted</string>
+    <string name="secure_settings_not_granted">ADB permission not granted; no permission dialog will be shown</string>
+    <string name="adb_grant_command">adb shell pm grant %1$s android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="adb_revoke_command">adb shell pm revoke %1$s android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="copy_grant_command">Copy grant command</string>
+    <string name="copy_revoke_command">Copy revoke command</string>
+    <string name="enable_experimental_grayscale">Enable experimental grayscale for selected apps</string>
+    <string name="adb_command">ADB command</string>
+    <string-array name="day_sets"><item>Every day</item><item>Weekdays</item><item>Weekends</item></string-array>
     <string-array name="appearance_actions">
         <item>@string/follow_system_theme</item>
         <item>@string/light_theme</item>

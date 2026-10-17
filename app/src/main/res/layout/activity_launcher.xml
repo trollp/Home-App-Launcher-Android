@@ -67,6 +67,27 @@
                 android:text="@string/launcher_settings" />
 
             <Button
+                android:id="@+id/permissionButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/permission_center" />
+
+            <Button
+                android:id="@+id/usageDashboardButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/usage_dashboard" />
+
+            <Button
+                android:id="@+id/inboxButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/notification_inbox" />
+
+            <Button
                 android:id="@+id/defaultHomeButton"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="match_parent"
