@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Installer-safe edition: keep the core Home/launcher experience while omitting
+      every optional capability that Android classifies as sensitive special access.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions"
+        tools:node="remove" />
+
+    <application>
+        <service
+            android:name=".QuietEnforcementService"
+            tools:node="remove" />
+        <service
+            android:name=".QuietNotificationListenerService"
+            tools:node="remove" />
+    </application>
+</manifest>

@@ -7,12 +7,24 @@ android {
     namespace = "com.petertroll.quiethome"
     compileSdk = 34
 
+    flavorDimensions += "capabilities"
+
     defaultConfig {
         applicationId = "com.petertroll.quiethome"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "0.9.0-beta1"
+    }
+    productFlavors {
+        create("full") {
+            dimension = "capabilities"
+        }
+        create("safe") {
+            dimension = "capabilities"
+            versionCode = 2
+            versionName = "0.9.1-safe1"
+        }
     }
     buildTypes {
         release {
