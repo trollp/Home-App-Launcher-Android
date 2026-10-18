@@ -19,9 +19,9 @@ class LauncherGesturePolicyTest {
         )
     }
 
-    @Test fun `downward swipe away from top is ignored`() {
+    @Test fun `downward swipe across Home opens notification shade`() {
         assertEquals(
-            LauncherGestureAction.NONE,
+            LauncherGestureAction.OPEN_NOTIFICATIONS,
             LauncherGesturePolicy.classifySwipe(180f, 180f, 185f, 410f, 20f, 1400f, 1f),
         )
     }
@@ -58,6 +58,13 @@ class LauncherGesturePolicyTest {
         assertEquals(
             LauncherGestureAction.OPEN_PREVIOUS_APP,
             LauncherGesturePolicy.classifySwipe(40f, 600f, 140f, 400f, 1400f, -500f, 1f),
+        )
+    }
+
+    @Test fun `horizontal velocity dominance survives downward diagonal displacement`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_PREVIOUS_APP,
+            LauncherGesturePolicy.classifySwipe(40f, 300f, 140f, 500f, 1400f, 500f, 1f),
         )
     }
 
@@ -126,9 +133,9 @@ class LauncherGesturePolicyTest {
         )
     }
 
-    @Test fun `vertical swipes do not take over interactive Home controls`() {
+    @Test fun `vertical swipes can start over interactive favorites on Home`() {
         assertEquals(
-            false,
+            true,
             LauncherGesturePolicy.canHandleSwipe(
                 action = LauncherGestureAction.OPEN_BROWSER,
                 isInteractiveTarget = true,
@@ -136,7 +143,7 @@ class LauncherGesturePolicyTest {
             ),
         )
         assertEquals(
-            false,
+            true,
             LauncherGesturePolicy.canHandleSwipe(
                 action = LauncherGestureAction.OPEN_NOTIFICATIONS,
                 isInteractiveTarget = true,

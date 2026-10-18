@@ -14,7 +14,6 @@ enum class LauncherGestureAction {
 /** Pure gesture classification so launcher navigation remains predictable and JVM-testable. */
 object LauncherGesturePolicy {
     private const val MIN_DISTANCE_DP = 80f
-    private const val TOP_EDGE_DP = 56f
 
     fun canLockOnDoubleTap(
         isInteractiveTarget: Boolean,
@@ -31,10 +30,7 @@ object LauncherGesturePolicy {
         if (startsInProtectedRegion) return false
         if (action == LauncherGestureAction.NONE || action == LauncherGestureAction.LOCK_SCREEN) return false
         if (!isInteractiveTarget) return true
-        return startsInHomeContent && (
-            action == LauncherGestureAction.OPEN_DRAWER ||
-                action == LauncherGestureAction.OPEN_PREVIOUS_APP
-            )
+        return startsInHomeContent
     }
 
     fun classifySwipe(
@@ -52,9 +48,9 @@ object LauncherGesturePolicy {
         val minimumDistance = MIN_DISTANCE_DP * safeDensity
 
         if (
-            startY <= TOP_EDGE_DP * safeDensity &&
             dy >= minimumDistance &&
             abs(dy) > abs(dx) &&
+            abs(velocityY) > abs(velocityX) &&
             velocityY > 0f
         ) {
             return LauncherGestureAction.OPEN_NOTIFICATIONS

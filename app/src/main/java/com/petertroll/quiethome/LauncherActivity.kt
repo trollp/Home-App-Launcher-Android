@@ -643,6 +643,11 @@ class LauncherActivity : AppCompatActivity() {
                     (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1))
                 ) return false
                 if (
+                    action == LauncherGestureAction.OPEN_NOTIFICATIONS &&
+                    binding.homePanel.isVisible &&
+                    binding.homePanel.canScrollVertically(-1)
+                ) return false
+                if (
                     action == LauncherGestureAction.OPEN_PREVIOUS_APP &&
                     !resources.getBoolean(R.bool.special_access_features_available)
                 ) return false

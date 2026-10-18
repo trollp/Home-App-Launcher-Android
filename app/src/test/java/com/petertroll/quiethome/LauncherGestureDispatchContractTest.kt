@@ -25,6 +25,8 @@ class LauncherGestureDispatchContractTest {
         assertTrue(body.contains("startsInProtectedRegion"))
         assertTrue(body.contains("binding.bottomQuickActions"))
         assertTrue(body.contains("LauncherGesturePolicy.canHandleSwipe"))
+        assertTrue(body.contains("binding.homePanel.canScrollVertically(1)"))
+        assertTrue(body.contains("binding.homePanel.canScrollVertically(-1)"))
     }
 
     private fun methodBody(name: String): String {
