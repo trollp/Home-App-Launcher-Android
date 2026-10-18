@@ -15,6 +15,7 @@ class QuietEnforcementService : AccessibilityService() {
     private var lastQueuedAt = 0L
     override fun onServiceConnected() {
         super.onServiceConnected()
+        connectedService = this
         requestGate.start()
         lastQueuedPackage = null
         lastQueuedAt = 0L
@@ -25,6 +26,9 @@ class QuietEnforcementService : AccessibilityService() {
         runCatching {
             val pkg = event.packageName?.toString() ?: return
             if (!requestGate.isActive()) return
+            if (pkg != packageName && pkg != "com.android.systemui" && packageManager.getLaunchIntentForPackage(pkg) != null) {
+                RecentAppHistoryStore(this).record(pkg, System.currentTimeMillis())
+            }
             // This only queues policy work; secure-setting reads/writes never run on this callback.
             GrayscaleController.foreground(this, pkg)
             val nowElapsed = SystemClock.elapsedRealtime()
@@ -46,9 +50,25 @@ class QuietEnforcementService : AccessibilityService() {
         } // Deliberately fail open: accessibility must never trap the user or destabilize System UI.
     }
     override fun onInterrupt() { requestGate.stop(); GrayscaleController.restore(this) }
-    override fun onDestroy() { requestGate.stop(); GrayscaleController.restore(this); super.onDestroy() }
+    override fun onUnbind(intent: android.content.Intent?): Boolean {
+        if (connectedService === this) connectedService = null
+        return super.onUnbind(intent)
+    }
+    override fun onDestroy() {
+        if (connectedService === this) connectedService = null
+        requestGate.stop()
+        GrayscaleController.restore(this)
+        super.onDestroy()
+    }
     private fun appLabel(pkg: String) = runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString() }.getOrDefault(pkg)
     companion object {
+        @Volatile private var connectedService: QuietEnforcementService? = null
+
+        fun performSystemAction(action: Int): Boolean =
+            connectedService?.let { service ->
+                runCatching { service.performGlobalAction(action) }.getOrDefault(false)
+            } ?: false
+
         fun isSystemEnabled(context: Context): Boolean {
             val expected = ComponentName(context, QuietEnforcementService::class.java)
             val masterEnabled = Settings.Secure.getInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1

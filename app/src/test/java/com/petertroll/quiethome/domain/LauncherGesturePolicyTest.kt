@@ -1,0 +1,56 @@
+package com.petertroll.quiethome.domain
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class LauncherGesturePolicyTest {
+    @Test fun `downward swipe beginning at the top opens notification shade`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_NOTIFICATIONS,
+            LauncherGesturePolicy.classifySwipe(
+                startX = 180f,
+                startY = 12f,
+                endX = 185f,
+                endY = 230f,
+                velocityX = 20f,
+                velocityY = 1400f,
+                density = 1f,
+            ),
+        )
+    }
+
+    @Test fun `downward swipe away from top is ignored`() {
+        assertEquals(
+            LauncherGestureAction.NONE,
+            LauncherGesturePolicy.classifySwipe(180f, 180f, 185f, 410f, 20f, 1400f, 1f),
+        )
+    }
+
+    @Test fun `left swipe opens app drawer`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_DRAWER,
+            LauncherGesturePolicy.classifySwipe(320f, 300f, 100f, 305f, -1400f, 10f, 1f),
+        )
+    }
+
+    @Test fun `right swipe switches to previous app`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_PREVIOUS_APP,
+            LauncherGesturePolicy.classifySwipe(40f, 300f, 270f, 305f, 1400f, 10f, 1f),
+        )
+    }
+
+    @Test fun `short or diagonal movement is not a launcher gesture`() {
+        assertEquals(
+            LauncherGestureAction.NONE,
+            LauncherGesturePolicy.classifySwipe(40f, 300f, 85f, 345f, 600f, 600f, 1f),
+        )
+    }
+
+    @Test fun `double tap locks only on non-interactive background with supported capability`() {
+        assertEquals(true, LauncherGesturePolicy.canLockOnDoubleTap(false, true, 28))
+        assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(true, true, 28))
+        assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(false, false, 28))
+        assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(false, true, 27))
+    }
+}

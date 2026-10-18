@@ -1,6 +1,7 @@
 package com.petertroll.quiethome
 
 import android.Manifest
+import android.accessibilityservice.AccessibilityService
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -8,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
@@ -17,6 +19,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.AlarmClock
 import android.provider.MediaStore
+import android.provider.Settings
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -46,11 +49,12 @@ import com.petertroll.quiethome.domain.AppTheme
 import com.petertroll.quiethome.domain.DisplayApp
 import com.petertroll.quiethome.domain.HomeSections
 import com.petertroll.quiethome.domain.LauncherPreferences
+import com.petertroll.quiethome.domain.LauncherGestureAction
+import com.petertroll.quiethome.domain.LauncherGesturePolicy
 import java.text.DateFormat
 import java.time.LocalDate
 import java.util.Date
 import java.util.concurrent.Executors
-import kotlin.math.abs
 
 class LauncherActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLauncherBinding
@@ -190,8 +194,9 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        val handledSwipe = gestureDetector.onTouchEvent(event)
-        return if (handledSwipe && event.actionMasked != MotionEvent.ACTION_DOWN) true else super.dispatchTouchEvent(event)
+        gestureDetector.onTouchEvent(event)
+        // Complete delivery to child controls; gesture callbacks perform side effects only.
+        return super.dispatchTouchEvent(event)
     }
 
     private fun installBackHandling() {
@@ -537,12 +542,110 @@ class LauncherActivity : AppCompatActivity() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
 
-            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-                if (e1 == null || abs(e2.x - e1.x) < dp(80) || abs(velocityX) < abs(velocityY)) return false
-                if (e2.x < e1.x) showDrawer(requestKeyboard = true) else showHome(clearSearch = true)
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                val capabilityAvailable = resources.getBoolean(R.bool.special_access_features_available)
+                val interactiveTarget = isInteractiveAt(binding.root, e.rawX.toInt(), e.rawY.toInt())
+                if (interactiveTarget) return false
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P && capabilityAvailable) {
+                    Toast.makeText(this@LauncherActivity, R.string.lock_gesture_unsupported, Toast.LENGTH_SHORT).show()
+                    return false
+                }
+                if (!LauncherGesturePolicy.canLockOnDoubleTap(
+                        isInteractiveTarget = interactiveTarget,
+                        accessibilityCapabilityAvailable = capabilityAvailable,
+                        sdkInt = Build.VERSION.SDK_INT,
+                    )
+                ) return false
+                lockScreen()
                 return true
             }
+
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 == null) return false
+                if (isInteractiveAt(binding.root, e1.rawX.toInt(), e1.rawY.toInt())) return false
+                return when (LauncherGesturePolicy.classifySwipe(
+                    startX = e1.x,
+                    startY = e1.y,
+                    endX = e2.x,
+                    endY = e2.y,
+                    velocityX = velocityX,
+                    velocityY = velocityY,
+                    density = resources.displayMetrics.density,
+                )) {
+                    LauncherGestureAction.OPEN_NOTIFICATIONS -> {
+                        openNotificationShade()
+                        true
+                    }
+                    LauncherGestureAction.OPEN_DRAWER -> {
+                        showDrawer(requestKeyboard = true)
+                        true
+                    }
+                    LauncherGestureAction.OPEN_PREVIOUS_APP -> {
+                        if (!resources.getBoolean(R.bool.special_access_features_available)) return false
+                        openPreviousApp()
+                        true
+                    }
+                    LauncherGestureAction.NONE -> false
+                }
+            }
         })
+    }
+
+    private fun openNotificationShade() {
+        if (QuietEnforcementService.performSystemAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)) return
+        val expanded = runCatching {
+            val statusBar = getSystemService("statusbar") ?: return@runCatching false
+            statusBar.javaClass.getMethod("expandNotificationsPanel").invoke(statusBar)
+            true
+        }.getOrDefault(false)
+        if (!expanded) {
+            if (resources.getBoolean(R.bool.special_access_features_available)) {
+                showAccessibilityNeeded(R.string.notifications_gesture_needs_accessibility)
+            } else {
+                Toast.makeText(this, R.string.notifications_gesture_unavailable, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun lockScreen() {
+        if (!QuietEnforcementService.performSystemAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)) {
+            showAccessibilityNeeded(R.string.lock_gesture_needs_accessibility)
+        }
+    }
+
+    private fun openPreviousApp() {
+        catalogExecutor.execute {
+            val packageName = RecentAppResolver(this).resolve()
+            val intent = packageName?.let(packageManager::getLaunchIntentForPackage)
+                ?.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            mainHandler.post {
+                if (!started || isDestroyed) return@post
+                if (intent == null) {
+                    Toast.makeText(this, R.string.previous_app_unavailable, Toast.LENGTH_SHORT).show()
+                } else {
+                    runCatching { startActivity(intent) }.onFailure {
+                        Toast.makeText(this, R.string.previous_app_unavailable, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun isInteractiveAt(view: View, rawX: Int, rawY: Int): Boolean {
+        if (!view.isShown) return false
+        val bounds = Rect()
+        if (!view.getGlobalVisibleRect(bounds) || !bounds.contains(rawX, rawY)) return false
+        if (view is ViewGroup) {
+            for (index in view.childCount - 1 downTo 0) {
+                if (isInteractiveAt(view.getChildAt(index), rawX, rawY)) return true
+            }
+        }
+        return view !== binding.root && (view.isClickable || view.isLongClickable || view is EditText)
+    }
+
+    private fun showAccessibilityNeeded(message: Int) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()

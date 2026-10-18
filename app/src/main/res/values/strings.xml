@@ -82,15 +82,15 @@
     <string name="usage_explanation">Usage access: measures today’s app time for daily limits. Without it, limits fail open.</string>
     <string name="notification_access_explanation">Notification access: enables your local allow, batch, and silence choices. Critical notifications are left alone.</string>
     <string name="notification_permission_explanation">Notification permission: allows approximate local session-end reminders and rate-limited warnings when usage limits cannot be enforced.</string>
-    <string name="accessibility_explanation">Accessibility: optional external-app enforcement. It observes foreground package changes only; rules fail open on errors.</string>
+    <string name="accessibility_explanation">Accessibility: enables double-tap screen lock and reliable notification gestures. It can also provide optional external-app enforcement; rules fail open on errors.</string>
     <string name="grayscale_explanation">Experimental grayscale: optional, device-dependent secure color correction for selected apps. It needs an explicit ADB grant.</string>
     <string name="granted">Granted</string><string name="not_enabled">Not enabled</string>
     <string name="open_home_settings">Choose Home app</string><string name="open_usage_settings">Open usage access</string>
     <string name="open_notification_access">Review notification access</string><string name="allow_reminders">Allow reminder notifications</string>
     <string name="open_accessibility_settings">Open accessibility settings</string><string name="external_enforcement_opt_in">I opt in to external enforcement</string>
     <string name="start_focus">Start 25-minute focus</string><string name="end_focus">End focus</string>
-    <string name="accessibility_service_name">Quiet Home optional enforcement</string>
-    <string name="accessibility_service_description">Optionally redirects configured, blocked apps to a calm explanation. Safe system and input apps are ignored. Enable only if you want external enforcement.</string>
+    <string name="accessibility_service_name">Quiet Home gestures and optional enforcement</string>
+    <string name="accessibility_service_description">Enables double-tap locking and reliable notification gestures, and locally remembers the latest launchable foreground app for quick switching. It can optionally redirect configured blocked apps. Foreground history stays on this device.</string>
     <string name="intentional_gate">Use intentional opening gate</string><string name="opening_delay">Opening delay</string>
     <string name="session_reminder">Optional approximate session reminder</string><string name="intent_prompt_hint">Intent prompt (optional)</string>
     <string name="daily_limit">Daily limit</string><string name="block_schedule">Use a quiet schedule</string>
@@ -149,6 +149,11 @@
     <string name="copy_revoke_command">Copy revoke command</string>
     <string name="enable_experimental_grayscale">Enable experimental grayscale for selected apps</string>
     <string name="adb_command">ADB command</string>
+    <string name="notifications_gesture_needs_accessibility">Enable Quiet Home accessibility to open notifications with this gesture.</string>
+    <string name="notifications_gesture_unavailable">The notification tray could not be opened on this device.</string>
+    <string name="lock_gesture_needs_accessibility">Enable Quiet Home accessibility to lock with a double tap.</string>
+    <string name="lock_gesture_unsupported">Double-tap lock requires Android 9 or newer.</string>
+    <string name="previous_app_unavailable">No recently opened app is available.</string>
     <string-array name="day_sets"><item>Every day</item><item>Weekdays</item><item>Weekends</item></string-array>
     <string-array name="appearance_actions">
         <item>@string/follow_system_theme</item>

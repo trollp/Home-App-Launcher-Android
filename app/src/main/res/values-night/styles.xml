@@ -1,0 +1,19 @@
+<resources>
+    <style name="Theme.QuietHome" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/quiet_primary</item>
+        <item name="colorPrimaryVariant">@color/quiet_primary</item>
+        <item name="colorOnPrimary">@color/quiet_on_primary</item>
+        <item name="colorAccent">@color/quiet_primary</item>
+        <item name="colorSurface">@color/quiet_surface</item>
+        <item name="colorOnSurface">@color/quiet_on_surface</item>
+        <item name="colorOnBackground">@color/quiet_on_background</item>
+        <item name="android:colorBackground">@color/quiet_background</item>
+        <item name="android:textColorPrimary">@color/quiet_on_background</item>
+        <item name="android:textColorSecondary">@color/quiet_secondary_text</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:statusBarColor">@color/quiet_background</item>
+        <item name="android:navigationBarColor">@color/quiet_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

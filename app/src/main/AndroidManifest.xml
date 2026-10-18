@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Requested at runtime only if the user taps the local torch control. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Normal permission used by the launcher's top-edge notification-shade gesture. -->
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <!-- Experimental status only; no in-app request. Advanced users may grant it explicitly with ADB. -->

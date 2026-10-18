@@ -1,0 +1,9 @@
+<resources>
+    <color name="quiet_primary">#FFFFFF</color>
+    <color name="quiet_on_primary">#000000</color>
+    <color name="quiet_background">#000000</color>
+    <color name="quiet_on_background">#FFFFFF</color>
+    <color name="quiet_surface">#000000</color>
+    <color name="quiet_on_surface">#FFFFFF</color>
+    <color name="quiet_secondary_text">#DADADA</color>
+</resources>
