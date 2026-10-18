@@ -350,6 +350,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun showDrawer(requestKeyboard: Boolean) {
         binding.homePanel.isVisible = false
+        binding.bottomQuickActions.isVisible = false
         binding.drawerPanel.isVisible = true
         renderBrowse()
         if (requestKeyboard) {
@@ -366,6 +367,7 @@ class LauncherActivity : AppCompatActivity() {
         binding.search.clearFocus()
         binding.drawerPanel.isVisible = false
         binding.homePanel.isVisible = true
+        binding.bottomQuickActions.isVisible = true
         getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(binding.search.windowToken, 0)
     }
 
@@ -576,6 +578,11 @@ class LauncherActivity : AppCompatActivity() {
                         openNotificationShade()
                         true
                     }
+                    LauncherGestureAction.OPEN_BROWSER -> {
+                        if (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1)) return false
+                        openBrowser()
+                        true
+                    }
                     LauncherGestureAction.OPEN_DRAWER -> {
                         showDrawer(requestKeyboard = true)
                         true
@@ -589,6 +596,15 @@ class LauncherActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun openBrowser() {
+        val browserIntent = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)
+        try {
+            startActivity(browserIntent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.browser_unavailable, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun openNotificationShade() {

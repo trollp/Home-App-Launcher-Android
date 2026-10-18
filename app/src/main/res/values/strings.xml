@@ -9,6 +9,7 @@
     <string name="clock_unavailable">No Clock app is available.</string>
     <string name="open_camera">Camera</string>
     <string name="camera_unavailable">No Camera app is available.</string>
+    <string name="browser_unavailable">No web browser is available.</string>
     <string name="torch">Torch</string>
     <string name="torch_on">Torch on</string>
     <string name="torch_off">Torch off</string>

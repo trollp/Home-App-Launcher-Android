@@ -40,6 +40,27 @@ class LauncherGesturePolicyTest {
         )
     }
 
+    @Test fun `upward swipe opens browser`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_BROWSER,
+            LauncherGesturePolicy.classifySwipe(180f, 600f, 185f, 350f, 10f, -1400f, 1f),
+        )
+    }
+
+    @Test fun `downward displacement never opens browser after direction reversal`() {
+        assertEquals(
+            LauncherGestureAction.NONE,
+            LauncherGesturePolicy.classifySwipe(180f, 300f, 185f, 500f, 10f, -1400f, 1f),
+        )
+    }
+
+    @Test fun `horizontal velocity dominance preserves horizontal gesture`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_PREVIOUS_APP,
+            LauncherGesturePolicy.classifySwipe(40f, 600f, 140f, 400f, 1400f, -500f, 1f),
+        )
+    }
+
     @Test fun `short or diagonal movement is not a launcher gesture`() {
         assertEquals(
             LauncherGestureAction.NONE,

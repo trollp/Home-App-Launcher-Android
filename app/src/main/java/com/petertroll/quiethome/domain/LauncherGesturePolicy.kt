@@ -5,6 +5,7 @@ import kotlin.math.abs
 enum class LauncherGestureAction {
     NONE,
     OPEN_NOTIFICATIONS,
+    OPEN_BROWSER,
     OPEN_DRAWER,
     OPEN_PREVIOUS_APP,
 }
@@ -41,6 +42,15 @@ object LauncherGesturePolicy {
             velocityY > 0f
         ) {
             return LauncherGestureAction.OPEN_NOTIFICATIONS
+        }
+
+        if (
+            dy <= -minimumDistance &&
+            abs(dy) > abs(dx) &&
+            abs(velocityY) > abs(velocityX) &&
+            velocityY < 0f
+        ) {
+            return LauncherGestureAction.OPEN_BROWSER
         }
 
         if (abs(dx) < minimumDistance || abs(velocityX) <= abs(velocityY)) {
