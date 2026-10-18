@@ -75,6 +75,29 @@ class LauncherGesturePolicyTest {
         )
     }
 
+    @Test fun `slow deliberate swipes classify from distance without velocity`() {
+        assertEquals(
+            LauncherGestureAction.OPEN_DRAWER,
+            LauncherGesturePolicy.classifySwipeByDistance(300f, 300f, 100f, 310f, 1f),
+        )
+        assertEquals(
+            LauncherGestureAction.OPEN_PREVIOUS_APP,
+            LauncherGesturePolicy.classifySwipeByDistance(100f, 300f, 300f, 290f, 1f),
+        )
+        assertEquals(
+            LauncherGestureAction.OPEN_BROWSER,
+            LauncherGesturePolicy.classifySwipeByDistance(200f, 300f, 210f, 100f, 1f),
+        )
+        assertEquals(
+            LauncherGestureAction.OPEN_NOTIFICATIONS,
+            LauncherGesturePolicy.classifySwipeByDistance(200f, 100f, 190f, 300f, 1f),
+        )
+        assertEquals(
+            LauncherGestureAction.NONE,
+            LauncherGesturePolicy.classifySwipeByDistance(100f, 100f, 140f, 145f, 1f),
+        )
+    }
+
     @Test fun `double tap locks only on non-interactive background with supported capability`() {
         assertEquals(true, LauncherGesturePolicy.canLockOnDoubleTap(false, true, 28))
         assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(true, true, 28))

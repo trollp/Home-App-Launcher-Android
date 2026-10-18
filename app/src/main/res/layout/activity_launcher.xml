@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -59,21 +60,11 @@
                 android:layout_marginTop="4dp"
                 android:textSize="18sp" />
 
-            <TextView
-                android:id="@+id/favoritesHeading"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
-                android:layout_marginBottom="8dp"
-                android:text="@string/favorites"
-                android:textAllCaps="false"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
             <LinearLayout
                 android:id="@+id/favoriteList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
                 android:orientation="vertical" />
 
             <Space
@@ -82,7 +73,7 @@
 
             <Button
                 android:id="@+id/appsButton"
-                style="?attr/materialButtonStyle"
+                style="@style/Widget.QuietHome.AllAppsButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="56dp"
@@ -103,40 +94,40 @@
         android:paddingEnd="24dp"
         android:paddingBottom="24dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/phoneButton"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.QuietHome.IconOnly"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:minHeight="56dp"
             android:layout_weight="1"
-            android:text="@string/open_phone"
-            android:textAllCaps="false"
-            android:textSize="16sp" />
+            android:contentDescription="@string/open_phone"
+            app:icon="@drawable/ic_phone_24"
+            app:iconSize="24dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/torchButton"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.QuietHome.IconOnly"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:minHeight="56dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="@string/torch"
-            android:textAllCaps="false"
-            android:textSize="16sp" />
+            android:contentDescription="@string/torch"
+            app:icon="@drawable/ic_flashlight_24"
+            app:iconSize="24dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/cameraButton"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.QuietHome.IconOnly"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:minHeight="56dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="@string/open_camera"
-            android:textAllCaps="false"
-            android:textSize="16sp" />
+            android:contentDescription="@string/open_camera"
+            app:icon="@drawable/ic_camera_24"
+            app:iconSize="24dp" />
     </LinearLayout>
 
     <LinearLayout

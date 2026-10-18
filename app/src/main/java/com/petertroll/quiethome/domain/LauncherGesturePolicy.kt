@@ -33,6 +33,24 @@ object LauncherGesturePolicy {
         return startsInHomeContent
     }
 
+    fun classifySwipeByDistance(
+        startX: Float,
+        startY: Float,
+        endX: Float,
+        endY: Float,
+        density: Float,
+    ): LauncherGestureAction {
+        val minimumDistance = MIN_DISTANCE_DP * density.coerceAtLeast(0.1f)
+        val dx = endX - startX
+        val dy = endY - startY
+        if (maxOf(abs(dx), abs(dy)) < minimumDistance) return LauncherGestureAction.NONE
+        return if (abs(dx) > abs(dy)) {
+            if (dx < 0f) LauncherGestureAction.OPEN_DRAWER else LauncherGestureAction.OPEN_PREVIOUS_APP
+        } else {
+            if (dy < 0f) LauncherGestureAction.OPEN_BROWSER else LauncherGestureAction.OPEN_NOTIFICATIONS
+        }
+    }
+
     fun classifySwipe(
         startX: Float,
         startY: Float,

@@ -16,4 +16,11 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
+
+    <style name="Widget.QuietHome.AllAppsButton" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#000000</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="strokeColor">#FFFFFF</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
 </resources>

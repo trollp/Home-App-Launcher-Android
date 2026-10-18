@@ -47,6 +47,7 @@ import com.petertroll.quiethome.domain.AppFilter
 import com.petertroll.quiethome.domain.AppSort
 import com.petertroll.quiethome.domain.AppTheme
 import com.petertroll.quiethome.domain.DisplayApp
+import com.petertroll.quiethome.domain.GestureNudgePolicy
 import com.petertroll.quiethome.domain.HomeSections
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
@@ -64,6 +65,10 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var appAdapter: AppListAdapter
     private lateinit var gestureDetector: GestureDetector
     private var pendingGestureAction: LauncherGestureAction? = null
+    private var gestureStartRawX = 0f
+    private var gestureStartRawY = 0f
+    private var gestureStartedInHome = false
+    private var gestureStartedInProtectedRegion = false
     private var preferences = LauncherPreferences()
     private var entries = emptyList<AppEntry>()
     private var catalogLoaded = false
@@ -108,7 +113,6 @@ class LauncherActivity : AppCompatActivity() {
         setContentView(binding.root)
         scaleText(binding.root, preferences.textScale)
         ViewCompat.setAccessibilityHeading(binding.clock, true)
-        ViewCompat.setAccessibilityHeading(binding.favoritesHeading, true)
         ViewCompat.setAccessibilityHeading(binding.allAppsHeading, true)
         binding.clock.contentDescription = getString(R.string.open_clock)
         repository = AndroidAppRepository(this)
@@ -189,16 +193,44 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) pendingGestureAction = null
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            pendingGestureAction = null
+            gestureStartRawX = event.rawX
+            gestureStartRawY = event.rawY
+            gestureStartedInHome = isPointInside(binding.homePanel, event.rawX.toInt(), event.rawY.toInt())
+            gestureStartedInProtectedRegion = isPointInside(
+                binding.bottomQuickActions,
+                event.rawX.toInt(),
+                event.rawY.toInt(),
+            )
+            resetGestureNudge(animated = false)
+        }
+
         gestureDetector.onTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_MOVE) applyGestureNudge(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP && pendingGestureAction == null) {
+            val action = LauncherGesturePolicy.classifySwipeByDistance(
+                startX = gestureStartRawX,
+                startY = gestureStartRawY,
+                endX = event.rawX,
+                endY = event.rawY,
+                density = resources.displayMetrics.density,
+            )
+            queueGestureAction(action, gestureStartRawX.toInt(), gestureStartRawY.toInt())
+        }
+
         val claimedAction = pendingGestureAction
         if (claimedAction != null) {
             val cancelEvent = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
             super.dispatchTouchEvent(cancelEvent)
             cancelEvent.recycle()
             pendingGestureAction = null
+            resetGestureNudge(animated = false)
             performPendingGesture(claimedAction)
             return true
+        }
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            resetGestureNudge(animated = true)
         }
         return super.dispatchTouchEvent(event)
     }
@@ -550,7 +582,9 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun renderTorch() {
-        binding.torchButton.text = getString(if (torchEnabled) R.string.torch_on else R.string.torch)
+        binding.torchButton.setIconResource(
+            if (torchEnabled) R.drawable.ic_flashlight_on_24 else R.drawable.ic_flashlight_24,
+        )
         binding.torchButton.contentDescription = getString(if (torchEnabled) R.string.torch_on else R.string.torch_off)
         binding.torchButton.isSelected = torchEnabled
     }
@@ -629,32 +663,67 @@ class LauncherActivity : AppCompatActivity() {
                     velocityY = velocityY,
                     density = resources.displayMetrics.density,
                 )
-                val rawX = e1.rawX.toInt()
-                val rawY = e1.rawY.toInt()
-                if (!LauncherGesturePolicy.canHandleSwipe(
-                        action = action,
-                        isInteractiveTarget = isInteractiveAt(binding.root, rawX, rawY),
-                        startsInHomeContent = isPointInside(binding.homePanel, rawX, rawY),
-                        startsInProtectedRegion = isPointInside(binding.bottomQuickActions, rawX, rawY),
-                    )
-                ) return false
-                if (
-                    action == LauncherGestureAction.OPEN_BROWSER &&
-                    (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1))
-                ) return false
-                if (
-                    action == LauncherGestureAction.OPEN_NOTIFICATIONS &&
-                    binding.homePanel.isVisible &&
-                    binding.homePanel.canScrollVertically(-1)
-                ) return false
-                if (
-                    action == LauncherGestureAction.OPEN_PREVIOUS_APP &&
-                    !resources.getBoolean(R.bool.special_access_features_available)
-                ) return false
-                pendingGestureAction = action
-                return true
+                return queueGestureAction(action, e1.rawX.toInt(), e1.rawY.toInt())
             }
         })
+    }
+
+    private fun queueGestureAction(action: LauncherGestureAction, rawX: Int, rawY: Int): Boolean {
+        if (!LauncherGesturePolicy.canHandleSwipe(
+                action = action,
+                isInteractiveTarget = isInteractiveAt(binding.root, rawX, rawY),
+                startsInHomeContent = isPointInside(binding.homePanel, rawX, rawY),
+                startsInProtectedRegion = isPointInside(binding.bottomQuickActions, rawX, rawY),
+            )
+        ) return false
+        if (
+            action == LauncherGestureAction.OPEN_BROWSER &&
+            (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1))
+        ) return false
+        if (
+            action == LauncherGestureAction.OPEN_NOTIFICATIONS &&
+            binding.homePanel.isVisible &&
+            binding.homePanel.canScrollVertically(-1)
+        ) return false
+        if (
+            action == LauncherGestureAction.OPEN_PREVIOUS_APP &&
+            !resources.getBoolean(R.bool.special_access_features_available)
+        ) return false
+        pendingGestureAction = action
+        return true
+    }
+
+    private fun applyGestureNudge(event: MotionEvent) {
+        val dx = event.rawX - gestureStartRawX
+        val dy = event.rawY - gestureStartRawY
+        val horizontal = kotlin.math.abs(dx) >= kotlin.math.abs(dy)
+        val scrollBoundaryAllowsNudge = horizontal ||
+            (dy < 0f && !binding.homePanel.canScrollVertically(1)) ||
+            (dy > 0f && !binding.homePanel.canScrollVertically(-1))
+        val nudge = GestureNudgePolicy.offset(
+            dx = dx,
+            dy = dy,
+            density = resources.displayMetrics.density,
+            enabled = binding.homePanel.isVisible && gestureStartedInHome &&
+                !gestureStartedInProtectedRegion && scrollBoundaryAllowsNudge,
+        )
+        binding.homePanel.animate().cancel()
+        binding.homePanel.translationX = nudge.x
+        binding.homePanel.translationY = nudge.y
+    }
+
+    private fun resetGestureNudge(animated: Boolean) {
+        binding.homePanel.animate().cancel()
+        if (animated && (binding.homePanel.translationX != 0f || binding.homePanel.translationY != 0f)) {
+            binding.homePanel.animate()
+                .translationX(0f)
+                .translationY(0f)
+                .setDuration(GESTURE_NUDGE_RESET_MS)
+                .start()
+        } else {
+            binding.homePanel.translationX = 0f
+            binding.homePanel.translationY = 0f
+        }
     }
 
     private fun performPendingGesture(action: LauncherGestureAction) {
@@ -784,6 +853,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private companion object {
         const val CLOCK_REFRESH_MS = 30_000L
+        const val GESTURE_NUDGE_RESET_MS = 90L
         const val MIN_ROW_HEIGHT_DP = 56
         const val STATE_DRAWER = "drawer"
         const val STATE_SEARCH = "search"

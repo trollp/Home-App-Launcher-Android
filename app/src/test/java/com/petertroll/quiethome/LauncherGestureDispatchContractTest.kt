@@ -18,8 +18,8 @@ class LauncherGestureDispatchContractTest {
         )
     }
 
-    @Test fun `fling classification distinguishes Home content from bottom controls`() {
-        val body = methodBody("installSwipeNavigation")
+    @Test fun `gesture arbitration distinguishes Home content from bottom controls`() {
+        val body = methodBody("queueGestureAction")
         assertTrue(body.contains("startsInHomeContent"))
         assertTrue(body.contains("binding.homePanel"))
         assertTrue(body.contains("startsInProtectedRegion"))
@@ -27,6 +27,22 @@ class LauncherGestureDispatchContractTest {
         assertTrue(body.contains("LauncherGesturePolicy.canHandleSwipe"))
         assertTrue(body.contains("binding.homePanel.canScrollVertically(1)"))
         assertTrue(body.contains("binding.homePanel.canScrollVertically(-1)"))
+    }
+
+    @Test fun `Home content tracks a bounded gesture nudge and resets cleanly`() {
+        val body = methodBody("applyGestureNudge")
+        assertTrue(body.contains("GestureNudgePolicy.offset"))
+        assertTrue(body.contains("binding.homePanel.translationX"))
+        assertTrue(body.contains("binding.homePanel.translationY"))
+        val reset = methodBody("resetGestureNudge")
+        assertTrue(reset.contains("translationX(0f)"))
+        assertTrue(reset.contains("translationY(0f)"))
+    }
+
+    @Test fun `slow swipe fallback is classified before touch delivery completes`() {
+        val body = methodBody("dispatchTouchEvent")
+        assertTrue(body.contains("LauncherGesturePolicy.classifySwipeByDistance"))
+        assertTrue(body.contains("queueGestureAction"))
     }
 
     private fun methodBody(name: String): String {

@@ -25,6 +25,14 @@ class LauncherPreferencesTest {
         assertEquals(listOf("Alpha", "Beta"), sections.allApps.map { it.displayLabel })
     }
 
+    @Test fun `Home keeps every favorite as the list grows`() {
+        val apps = (1..12).map { index -> AppEntry("pkg.$index", "Main", "App $index") }
+        val favorites = apps.map { it.packageName }.toSet()
+        val sections = HomeSections.from(AppCatalog(apps, LauncherPreferences(favoritePackages = favorites)))
+        assertEquals(12, sections.favorites.size)
+        assertEquals(apps.map { it.packageName }.toSet(), sections.favorites.map { it.packageName }.toSet())
+    }
+
     @Test fun `recording launches updates count and latest time immutably`() {
         val original = LauncherPreferences()
         val updated = original.recordLaunch("pkg.app", 1234L).recordLaunch("pkg.app", 5678L)

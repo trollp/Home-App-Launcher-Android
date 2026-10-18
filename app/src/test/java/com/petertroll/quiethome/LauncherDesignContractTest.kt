@@ -31,7 +31,7 @@ class LauncherDesignContractTest {
         ).forEach { id -> assertEquals("$id must not remain on Home", null, findById(homePanel, "@+id/$id")) }
 
         val appsButton = requireNotNull(findById(homePanel, "@+id/appsButton"))
-        assertEquals("?attr/materialButtonStyle", appsButton.getAttribute("style"))
+        assertEquals("@style/Widget.QuietHome.AllAppsButton", appsButton.getAttribute("style"))
         assertEquals("18sp", appsButton.getAttributeNS(androidNs, "textSize"))
         assertEquals("false", appsButton.getAttributeNS(androidNs, "textAllCaps"))
     }
@@ -63,16 +63,30 @@ class LauncherDesignContractTest {
     }
 
     @Test fun `launcher typography uses readable hierarchy without all caps`() {
-        listOf("favoritesHeading", "allAppsHeading").forEach { id ->
-            val heading = requireNotNull(findById(document.documentElement, "@+id/$id"))
-            assertEquals("16sp", heading.getAttributeNS(androidNs, "textSize"))
-            assertEquals("false", heading.getAttributeNS(androidNs, "textAllCaps"))
-            assertEquals("bold", heading.getAttributeNS(androidNs, "textStyle"))
-        }
-        listOf("phoneButton", "torchButton", "cameraButton", "filterButton", "sortButton").forEach { id ->
+        val heading = requireNotNull(findById(document.documentElement, "@+id/allAppsHeading"))
+        assertEquals("16sp", heading.getAttributeNS(androidNs, "textSize"))
+        assertEquals("false", heading.getAttributeNS(androidNs, "textAllCaps"))
+        assertEquals("bold", heading.getAttributeNS(androidNs, "textStyle"))
+        listOf("filterButton", "sortButton").forEach { id ->
             val control = requireNotNull(findById(document.documentElement, "@+id/$id"))
             assertEquals("$id must use readable 16sp labels", "16sp", control.getAttributeNS(androidNs, "textSize"))
             assertFalse("$id must not force uppercase", control.getAttributeNS(androidNs, "textAllCaps") == "true")
+        }
+    }
+
+    @Test fun `Home omits the redundant Favorites heading`() {
+        val homePanel = requireNotNull(findById(document.documentElement, "@+id/homePanel"))
+        assertEquals(null, findById(homePanel, "@+id/favoritesHeading"))
+        assertFalse(sourceFile.readText().contains("binding.favoritesHeading"))
+    }
+
+    @Test fun `All Apps button remains black with white text in both themes`() {
+        val dayStyles = File(root, "app/src/main/res/values/styles.xml").readText()
+        val nightStyles = File(root, "app/src/main/res/values-night/styles.xml").readText()
+        listOf(dayStyles, nightStyles).forEach { styles ->
+            assertTrue(styles.contains("name=\"Widget.QuietHome.AllAppsButton\""))
+            assertTrue(styles.contains("<item name=\"backgroundTint\">#000000</item>"))
+            assertTrue(styles.contains("<item name=\"android:textColor\">#FFFFFF</item>"))
         }
     }
 
@@ -88,7 +102,7 @@ class LauncherDesignContractTest {
 
     @Test fun `visible sections expose semantic headings`() {
         val source = sourceFile.readText()
-        assertTrue(source.contains("ViewCompat.setAccessibilityHeading(binding.favoritesHeading, true)"))
+        assertFalse(source.contains("ViewCompat.setAccessibilityHeading(binding.favoritesHeading, true)"))
         assertTrue(source.contains("ViewCompat.setAccessibilityHeading(binding.allAppsHeading, true)"))
     }
 
