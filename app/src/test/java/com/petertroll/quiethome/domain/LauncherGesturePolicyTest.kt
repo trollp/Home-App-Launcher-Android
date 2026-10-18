@@ -74,4 +74,74 @@ class LauncherGesturePolicyTest {
         assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(false, false, 28))
         assertEquals(false, LauncherGesturePolicy.canLockOnDoubleTap(false, true, 27))
     }
+
+    @Test fun `horizontal swipes can start over interactive favorites on Home`() {
+        assertEquals(
+            true,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_DRAWER,
+                isInteractiveTarget = true,
+                startsInHomeContent = true,
+            ),
+        )
+        assertEquals(
+            true,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_PREVIOUS_APP,
+                isInteractiveTarget = true,
+                startsInHomeContent = true,
+            ),
+        )
+    }
+
+    @Test fun `interactive controls outside Home content retain their touch stream`() {
+        assertEquals(
+            false,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_DRAWER,
+                isInteractiveTarget = true,
+                startsInHomeContent = false,
+            ),
+        )
+    }
+
+    @Test fun `bottom quick actions remain protected even though Home overlaps them`() {
+        assertEquals(
+            false,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_DRAWER,
+                isInteractiveTarget = true,
+                startsInHomeContent = true,
+                startsInProtectedRegion = true,
+            ),
+        )
+        assertEquals(
+            false,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_PREVIOUS_APP,
+                isInteractiveTarget = false,
+                startsInHomeContent = true,
+                startsInProtectedRegion = true,
+            ),
+        )
+    }
+
+    @Test fun `vertical swipes do not take over interactive Home controls`() {
+        assertEquals(
+            false,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_BROWSER,
+                isInteractiveTarget = true,
+                startsInHomeContent = true,
+            ),
+        )
+        assertEquals(
+            false,
+            LauncherGesturePolicy.canHandleSwipe(
+                action = LauncherGestureAction.OPEN_NOTIFICATIONS,
+                isInteractiveTarget = true,
+                startsInHomeContent = true,
+            ),
+        )
+    }
 }

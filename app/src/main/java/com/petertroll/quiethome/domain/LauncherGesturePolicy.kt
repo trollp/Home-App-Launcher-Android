@@ -4,6 +4,7 @@ import kotlin.math.abs
 
 enum class LauncherGestureAction {
     NONE,
+    LOCK_SCREEN,
     OPEN_NOTIFICATIONS,
     OPEN_BROWSER,
     OPEN_DRAWER,
@@ -20,6 +21,21 @@ object LauncherGesturePolicy {
         accessibilityCapabilityAvailable: Boolean,
         sdkInt: Int,
     ): Boolean = !isInteractiveTarget && accessibilityCapabilityAvailable && sdkInt >= 28
+
+    fun canHandleSwipe(
+        action: LauncherGestureAction,
+        isInteractiveTarget: Boolean,
+        startsInHomeContent: Boolean,
+        startsInProtectedRegion: Boolean = false,
+    ): Boolean {
+        if (startsInProtectedRegion) return false
+        if (action == LauncherGestureAction.NONE || action == LauncherGestureAction.LOCK_SCREEN) return false
+        if (!isInteractiveTarget) return true
+        return startsInHomeContent && (
+            action == LauncherGestureAction.OPEN_DRAWER ||
+                action == LauncherGestureAction.OPEN_PREVIOUS_APP
+            )
+    }
 
     fun classifySwipe(
         startX: Float,

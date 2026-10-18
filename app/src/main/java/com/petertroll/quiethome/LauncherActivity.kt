@@ -63,6 +63,7 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var repository: AndroidAppRepository
     private lateinit var appAdapter: AppListAdapter
     private lateinit var gestureDetector: GestureDetector
+    private var pendingGestureAction: LauncherGestureAction? = null
     private var preferences = LauncherPreferences()
     private var entries = emptyList<AppEntry>()
     private var catalogLoaded = false
@@ -188,8 +189,17 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) pendingGestureAction = null
         gestureDetector.onTouchEvent(event)
-        // Complete delivery to child controls; gesture callbacks perform side effects only.
+        val claimedAction = pendingGestureAction
+        if (claimedAction != null) {
+            val cancelEvent = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+            super.dispatchTouchEvent(cancelEvent)
+            cancelEvent.recycle()
+            pendingGestureAction = null
+            performPendingGesture(claimedAction)
+            return true
+        }
         return super.dispatchTouchEvent(event)
     }
 
@@ -604,14 +614,13 @@ class LauncherActivity : AppCompatActivity() {
                         sdkInt = Build.VERSION.SDK_INT,
                     )
                 ) return false
-                lockScreen()
+                pendingGestureAction = LauncherGestureAction.LOCK_SCREEN
                 return true
             }
 
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
                 if (e1 == null) return false
-                if (isInteractiveAt(binding.root, e1.rawX.toInt(), e1.rawY.toInt())) return false
-                return when (LauncherGesturePolicy.classifySwipe(
+                val action = LauncherGesturePolicy.classifySwipe(
                     startX = e1.x,
                     startY = e1.y,
                     endX = e2.x,
@@ -619,29 +628,39 @@ class LauncherActivity : AppCompatActivity() {
                     velocityX = velocityX,
                     velocityY = velocityY,
                     density = resources.displayMetrics.density,
-                )) {
-                    LauncherGestureAction.OPEN_NOTIFICATIONS -> {
-                        openNotificationShade()
-                        true
-                    }
-                    LauncherGestureAction.OPEN_BROWSER -> {
-                        if (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1)) return false
-                        openBrowser()
-                        true
-                    }
-                    LauncherGestureAction.OPEN_DRAWER -> {
-                        showDrawer(requestKeyboard = true)
-                        true
-                    }
-                    LauncherGestureAction.OPEN_PREVIOUS_APP -> {
-                        if (!resources.getBoolean(R.bool.special_access_features_available)) return false
-                        openPreviousApp()
-                        true
-                    }
-                    LauncherGestureAction.NONE -> false
-                }
+                )
+                val rawX = e1.rawX.toInt()
+                val rawY = e1.rawY.toInt()
+                if (!LauncherGesturePolicy.canHandleSwipe(
+                        action = action,
+                        isInteractiveTarget = isInteractiveAt(binding.root, rawX, rawY),
+                        startsInHomeContent = isPointInside(binding.homePanel, rawX, rawY),
+                        startsInProtectedRegion = isPointInside(binding.bottomQuickActions, rawX, rawY),
+                    )
+                ) return false
+                if (
+                    action == LauncherGestureAction.OPEN_BROWSER &&
+                    (!binding.homePanel.isVisible || binding.homePanel.canScrollVertically(1))
+                ) return false
+                if (
+                    action == LauncherGestureAction.OPEN_PREVIOUS_APP &&
+                    !resources.getBoolean(R.bool.special_access_features_available)
+                ) return false
+                pendingGestureAction = action
+                return true
             }
         })
+    }
+
+    private fun performPendingGesture(action: LauncherGestureAction) {
+        when (action) {
+            LauncherGestureAction.LOCK_SCREEN -> lockScreen()
+            LauncherGestureAction.OPEN_NOTIFICATIONS -> openNotificationShade()
+            LauncherGestureAction.OPEN_BROWSER -> openBrowser()
+            LauncherGestureAction.OPEN_DRAWER -> showDrawer(requestKeyboard = true)
+            LauncherGestureAction.OPEN_PREVIOUS_APP -> openPreviousApp()
+            LauncherGestureAction.NONE -> Unit
+        }
     }
 
     private fun openBrowser() {
@@ -691,6 +710,12 @@ class LauncherActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun isPointInside(view: View, rawX: Int, rawY: Int): Boolean {
+        if (!view.isShown) return false
+        val bounds = Rect()
+        return view.getGlobalVisibleRect(bounds) && bounds.contains(rawX, rawY)
     }
 
     private fun isInteractiveAt(view: View, rawX: Int, rawY: Int): Boolean {
