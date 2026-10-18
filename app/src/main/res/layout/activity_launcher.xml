@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -43,26 +43,31 @@
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:minHeight="48dp"
-                    android:textAllCaps="false" />
+                    android:textAllCaps="false"
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/date"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:textSize="18sp" />
 
             <TextView
+                android:id="@+id/favoritesHeading"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="8dp"
                 android:text="@string/favorites"
-                android:textAllCaps="true"
-                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -73,49 +78,17 @@
 
             <Space
                 android:layout_width="1dp"
-                android:layout_height="24dp" />
+                android:layout_height="28dp" />
 
             <Button
                 android:id="@+id/appsButton"
-                style="?attr/materialButtonOutlinedStyle"
+                style="?attr/materialButtonStyle"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="@string/open_apps" />
-
-            <Button
-                android:id="@+id/appearanceButton"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/launcher_settings" />
-
-            <Button
-                android:id="@+id/permissionButton"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/permission_center" />
-
-            <Button
-                android:id="@+id/usageDashboardButton"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/usage_dashboard" />
-
-            <Button
-                android:id="@+id/inboxButton"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/notification_inbox" />
-
-            <Button
-                android:id="@+id/defaultHomeButton"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="@string/choose_home" />
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:text="@string/open_apps"
+                android:textAllCaps="false"
+                android:textSize="18sp" />
         </LinearLayout>
     </ScrollView>
 
@@ -134,30 +107,36 @@
             android:id="@+id/phoneButton"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:layout_weight="1"
             android:text="@string/open_phone"
-            android:textSize="14sp" />
+            android:textAllCaps="false"
+            android:textSize="16sp" />
 
         <Button
             android:id="@+id/torchButton"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="@string/torch"
-            android:textSize="14sp" />
+            android:textAllCaps="false"
+            android:textSize="16sp" />
 
         <Button
             android:id="@+id/cameraButton"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="@string/open_camera"
-            android:textSize="14sp" />
+            android:textAllCaps="false"
+            android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -170,24 +149,52 @@
         android:paddingEnd="16dp"
         android:visibility="gone">
 
-        <Button
-            android:id="@+id/homeButton"
-            style="?attr/materialButtonOutlinedStyle"
+        <LinearLayout
+            android:id="@+id/drawerHeader"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="@string/back_home" />
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layoutDirection="ltr"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/homeButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_weight="1"
+                android:text="@string/back_home"
+                android:textAllCaps="false"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/settingsButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minHeight="48dp"
+                android:minWidth="104dp"
+                android:text="@string/settings"
+                android:textAllCaps="false"
+                android:textSize="16sp" />
+        </LinearLayout>
 
         <EditText
             android:id="@+id/search"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="8dp"
             android:hint="@string/search_apps"
             android:imeOptions="actionSearch"
             android:importantForAutofill="no"
             android:inputType="text|textNoSuggestions"
             android:maxLines="1"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp" />
+            android:paddingEnd="16dp"
+            android:textSize="18sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -201,7 +208,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minHeight="48dp"
-                android:textAllCaps="false" />
+                android:textAllCaps="false"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/sortButton"
@@ -211,17 +219,19 @@
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:minHeight="48dp"
-                android:textAllCaps="false" />
+                android:textAllCaps="false"
+                android:textSize="16sp" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/allAppsHeading"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
             android:text="@string/all_apps"
-            android:textAllCaps="true"
-            android:textSize="13sp"
+            android:textAllCaps="false"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <FrameLayout
@@ -239,11 +249,13 @@
             <TextView
                 android:id="@+id/emptyApps"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
                 android:gravity="center_vertical"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
+                android:textSize="16sp"
                 android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
-</FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

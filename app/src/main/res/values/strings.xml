@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Quiet Home</string>
     <string name="favorites">Favorites</string>
-    <string name="no_favorites">Long-press an app to add a favorite.</string>
+    <string name="no_favorites">No favorites yet.</string>
     <string name="all_apps">All apps</string>
     <string name="open_apps">Open all apps</string>
     <string name="search_apps">Search apps</string>
@@ -28,9 +28,11 @@
     <string name="filter_apps">Filter apps</string>
     <string name="sort_apps">Sort apps</string>
     <string-array name="app_filters"><item>All</item><item>Favorites</item><item>Others</item></string-array>
-    <string-array name="app_sorts"><item>Alphabetical</item><item>Most selected here</item><item>Recently selected</item></string-array>
-    <string name="back_home">Back to home</string>
+    <string-array name="app_sorts"><item>Alphabetical</item><item>Most opened</item><item>Recently opened</item></string-array>
+    <string name="back_home">Home</string>
+    <string name="settings">Settings</string>
     <string name="launcher_settings">Appearance</string>
+    <string name="open_app_settings">App settings</string>
     <string name="choose_home">Choose default Home</string>
     <string name="no_apps_found">No apps found.</string>
     <string name="no_matching_apps">No matching apps.</string>
@@ -39,6 +41,8 @@
     <string name="remove_favorite">Remove favorite</string>
     <string name="rename">Rename</string>
     <string name="hide">Hide</string>
+    <string name="app_hidden">%1$s hidden.</string>
+    <string name="undo">Undo</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
     <string name="app_name_hint">App name</string>

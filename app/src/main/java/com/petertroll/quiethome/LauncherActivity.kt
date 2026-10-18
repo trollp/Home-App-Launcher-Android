@@ -13,6 +13,7 @@ import android.graphics.Rect
 import android.graphics.Typeface
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -29,7 +30,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -51,6 +51,7 @@ import com.petertroll.quiethome.domain.HomeSections
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
 import com.petertroll.quiethome.domain.LauncherGesturePolicy
+import com.google.android.material.snackbar.Snackbar
 import java.text.DateFormat
 import java.time.LocalDate
 import java.util.Date
@@ -64,6 +65,7 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetector
     private var preferences = LauncherPreferences()
     private var entries = emptyList<AppEntry>()
+    private var catalogLoaded = false
     private var appFilter = AppFilter.ALL
     private var torchCameraId: String? = null
     private var torchEnabled = false
@@ -76,7 +78,9 @@ class LauncherActivity : AppCompatActivity() {
         if (granted) {
             toggleTorch()
         } else {
-            Toast.makeText(this, R.string.camera_permission_needed, Toast.LENGTH_SHORT).show()
+            snackbar(R.string.camera_permission_needed)
+                .setAction(R.string.open_app_settings) { openAppSettings() }
+                .show()
         }
     }
     private val clockTick = object : Runnable {
@@ -103,6 +107,8 @@ class LauncherActivity : AppCompatActivity() {
         setContentView(binding.root)
         scaleText(binding.root, preferences.textScale)
         ViewCompat.setAccessibilityHeading(binding.clock, true)
+        ViewCompat.setAccessibilityHeading(binding.favoritesHeading, true)
+        ViewCompat.setAccessibilityHeading(binding.allAppsHeading, true)
         binding.clock.contentDescription = getString(R.string.open_clock)
         repository = AndroidAppRepository(this)
         appAdapter = AppListAdapter()
@@ -121,20 +127,8 @@ class LauncherActivity : AppCompatActivity() {
         binding.torchButton.setOnClickListener { requestOrToggleTorch() }
         binding.filterButton.setOnClickListener { showFilterMenu() }
         binding.sortButton.setOnClickListener { showSortMenu() }
-        binding.appearanceButton.setOnClickListener { showAppearanceMenu() }
-        binding.permissionButton.setOnClickListener {
-            startActivity(Intent(this, PermissionCenterActivity::class.java))
-        }
-        binding.usageDashboardButton.setOnClickListener { startActivity(Intent(this, UsageDashboardActivity::class.java)) }
-        binding.inboxButton.setOnClickListener { startActivity(Intent(this, NotificationInboxActivity::class.java)) }
-        binding.defaultHomeButton.setOnClickListener {
-            startActivity(Intent(this, OnboardingActivity::class.java))
-        }
+        binding.settingsButton.setOnClickListener { showSettingsMenu() }
         binding.search.doAfterTextChanged { renderBrowse() }
-        val specialAccessAvailable = resources.getBoolean(R.bool.special_access_features_available)
-        binding.permissionButton.isVisible = specialAccessAvailable
-        binding.usageDashboardButton.isVisible = specialAccessAvailable
-        binding.inboxButton.isVisible = specialAccessAvailable
         installBackHandling()
         installSwipeNavigation()
 
@@ -160,7 +154,6 @@ class LauncherActivity : AppCompatActivity() {
         preferences = store.load()
         showHome(clearSearch = true)
         renderHome()
-        binding.defaultHomeButton.isVisible = !isDefaultHome()
         mainHandler.removeCallbacks(clockTick)
         clockTick.run()
     }
@@ -229,6 +222,7 @@ class LauncherActivity : AppCompatActivity() {
             mainHandler.post {
                 if (!started || generation != catalogGeneration || isDestroyed) return@post
                 entries = loaded
+                catalogLoaded = true
                 renderHome()
                 if (binding.drawerPanel.isVisible) {
                     renderBrowse()
@@ -243,7 +237,9 @@ class LauncherActivity : AppCompatActivity() {
         renderHabit()
         binding.favoriteList.removeAllViews()
         val favorites = HomeSections.from(catalog()).favorites
-        if (favorites.isEmpty()) {
+        if (!catalogLoaded) {
+            binding.favoriteList.addView(labelView(getString(R.string.loading_apps), false))
+        } else if (favorites.isEmpty()) {
             binding.favoriteList.addView(labelView(getString(R.string.no_favorites), false))
         } else {
             favorites.forEach { binding.favoriteList.addView(appRow(it)) }
@@ -251,6 +247,13 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun renderApps(apps: List<DisplayApp>) {
+        if (!catalogLoaded) {
+            appAdapter.replace(emptyList())
+            binding.emptyApps.setText(R.string.loading_apps)
+            binding.emptyApps.isVisible = true
+            binding.appList.isVisible = false
+            return
+        }
         appAdapter.replace(apps)
         binding.emptyApps.text = getString(
             if (binding.search.text.isNullOrBlank()) R.string.no_apps_found else R.string.no_matching_apps
@@ -286,7 +289,7 @@ class LauncherActivity : AppCompatActivity() {
         text = textValue
         textSize = 18f * preferences.textScale
         gravity = Gravity.CENTER_VERTICAL
-        minHeight = dp(ROW_HEIGHT_DP)
+        minHeight = dp(MIN_ROW_HEIGHT_DP)
         setPadding(dp(12), 0, dp(12), 0)
         isClickable = actionable
         isFocusable = actionable
@@ -318,11 +321,19 @@ class LauncherActivity : AppCompatActivity() {
                         .putExtra(AppRulesActivity.EXTRA_PACKAGE, app.packageName)
                         .putExtra(AppRulesActivity.EXTRA_LABEL, app.displayLabel))
                     2 -> showRename(app)
-                    3 -> update(preferences.hide(app.packageName))
+                    3 -> hideApp(app)
                     4 -> repository.openInfo(app.packageName)
                     5 -> repository.requestUninstall(app.packageName)
                 }
             }.show()
+    }
+
+    private fun hideApp(app: DisplayApp) {
+        val previous = preferences
+        update(preferences.hide(app.packageName))
+        snackbar(getString(R.string.app_hidden, app.displayLabel))
+            .setAction(R.string.undo) { update(previous) }
+            .show()
     }
 
     private fun showRename(app: DisplayApp) {
@@ -388,6 +399,32 @@ class LauncherActivity : AppCompatActivity() {
             }.show()
     }
 
+    private fun showSettingsMenu() {
+        val actions = mutableListOf<Pair<Int, () -> Unit>>()
+        actions += R.string.launcher_settings to { showAppearanceMenu() }
+        if (resources.getBoolean(R.bool.special_access_features_available)) {
+            actions += R.string.permission_center to {
+                startActivity(Intent(this, PermissionCenterActivity::class.java))
+            }
+            actions += R.string.usage_dashboard to {
+                startActivity(Intent(this, UsageDashboardActivity::class.java))
+            }
+            actions += R.string.notification_inbox to {
+                startActivity(Intent(this, NotificationInboxActivity::class.java))
+            }
+        }
+        actions += R.string.choose_home to {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings)
+            .setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which ->
+                actions[which].second.invoke()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun showFilterMenu() {
         AlertDialog.Builder(this)
             .setTitle(R.string.filter_apps)
@@ -450,14 +487,14 @@ class LauncherActivity : AppCompatActivity() {
                 false
             }
         }
-        if (!opened) Toast.makeText(this, R.string.clock_unavailable, Toast.LENGTH_SHORT).show()
+        if (!opened) showMessage(R.string.clock_unavailable)
     }
 
     private fun openCamera() {
         try {
             startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.camera_unavailable, Toast.LENGTH_SHORT).show()
+            showMessage(R.string.camera_unavailable)
         }
     }
 
@@ -465,7 +502,7 @@ class LauncherActivity : AppCompatActivity() {
         try {
             startActivity(Intent(Intent.ACTION_DIAL))
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.phone_unavailable, Toast.LENGTH_SHORT).show()
+            showMessage(R.string.phone_unavailable)
         }
     }
 
@@ -509,7 +546,7 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun showTorchUnavailable() {
-        Toast.makeText(this, R.string.torch_unavailable, Toast.LENGTH_SHORT).show()
+        showMessage(R.string.torch_unavailable)
     }
 
     private fun saveAndRecreate(value: LauncherPreferences) {
@@ -558,7 +595,7 @@ class LauncherActivity : AppCompatActivity() {
                 val interactiveTarget = isInteractiveAt(binding.root, e.rawX.toInt(), e.rawY.toInt())
                 if (interactiveTarget) return false
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P && capabilityAvailable) {
-                    Toast.makeText(this@LauncherActivity, R.string.lock_gesture_unsupported, Toast.LENGTH_SHORT).show()
+                    showMessage(R.string.lock_gesture_unsupported)
                     return false
                 }
                 if (!LauncherGesturePolicy.canLockOnDoubleTap(
@@ -612,7 +649,7 @@ class LauncherActivity : AppCompatActivity() {
         try {
             startActivity(browserIntent)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.browser_unavailable, Toast.LENGTH_SHORT).show()
+            showMessage(R.string.browser_unavailable)
         }
     }
 
@@ -627,7 +664,7 @@ class LauncherActivity : AppCompatActivity() {
             if (resources.getBoolean(R.bool.special_access_features_available)) {
                 showAccessibilityNeeded(R.string.notifications_gesture_needs_accessibility)
             } else {
-                Toast.makeText(this, R.string.notifications_gesture_unavailable, Toast.LENGTH_SHORT).show()
+                showMessage(R.string.notifications_gesture_unavailable)
             }
         }
     }
@@ -646,10 +683,10 @@ class LauncherActivity : AppCompatActivity() {
             mainHandler.post {
                 if (!started || isDestroyed) return@post
                 if (intent == null) {
-                    Toast.makeText(this, R.string.previous_app_unavailable, Toast.LENGTH_SHORT).show()
+                    showMessage(R.string.previous_app_unavailable)
                 } else {
                     runCatching { startActivity(intent) }.onFailure {
-                        Toast.makeText(this, R.string.previous_app_unavailable, Toast.LENGTH_SHORT).show()
+                        showMessage(R.string.previous_app_unavailable)
                     }
                 }
             }
@@ -669,8 +706,35 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun showAccessibilityNeeded(message: Int) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-        runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        snackbar(message)
+            .setAction(R.string.open_accessibility_settings) {
+                runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+            }
+            .show()
+    }
+
+    private fun openAppSettings() {
+        runCatching {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName"))
+            )
+        }
+    }
+
+    private fun snackbar(message: Int): Snackbar = snackbar(getString(message))
+
+    private fun snackbar(message: CharSequence): Snackbar =
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+            .setActionTextColor(ContextCompat.getColor(this, R.color.quiet_on_primary))
+            .also { snackbar ->
+                if (binding.bottomQuickActions.isVisible) {
+                    snackbar.anchorView = binding.bottomQuickActions
+                }
+            }
+
+    private fun showMessage(message: Int) {
+        snackbar(message).show()
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
@@ -684,18 +748,13 @@ class LauncherActivity : AppCompatActivity() {
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val recycled = convertView as? TextView
-            return appRow(getItem(position)!!, recycled).apply {
-                layoutParams = android.widget.AbsListView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(ROW_HEIGHT_DP)
-                )
-            }
+            return appRow(getItem(position)!!, recycled)
         }
     }
 
     private companion object {
         const val CLOCK_REFRESH_MS = 30_000L
-        const val ROW_HEIGHT_DP = 56
+        const val MIN_ROW_HEIGHT_DP = 56
         const val STATE_DRAWER = "drawer"
         const val STATE_SEARCH = "search"
         const val STATE_FILTER = "filter"
