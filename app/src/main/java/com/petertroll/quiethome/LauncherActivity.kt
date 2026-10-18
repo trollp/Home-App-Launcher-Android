@@ -116,6 +116,7 @@ class LauncherActivity : AppCompatActivity() {
             showRenameHabit()
             true
         }
+        binding.phoneButton.setOnClickListener { openPhone() }
         binding.cameraButton.setOnClickListener { openCamera() }
         binding.torchButton.setOnClickListener { requestOrToggleTorch() }
         binding.filterButton.setOnClickListener { showFilterMenu() }
@@ -157,8 +158,8 @@ class LauncherActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         preferences = store.load()
+        showHome(clearSearch = true)
         renderHome()
-        if (binding.drawerPanel.isVisible) renderBrowse()
         binding.defaultHomeButton.isVisible = !isDefaultHome()
         mainHandler.removeCallbacks(clockTick)
         clockTick.run()
@@ -457,6 +458,14 @@ class LauncherActivity : AppCompatActivity() {
             startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(this, R.string.camera_unavailable, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openPhone() {
+        try {
+            startActivity(Intent(Intent.ACTION_DIAL))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.phone_unavailable, Toast.LENGTH_SHORT).show()
         }
     }
 

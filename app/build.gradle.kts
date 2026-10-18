@@ -13,8 +13,8 @@ android {
         applicationId = "com.petertroll.quiethome"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.11.0-quick-actions"
+        versionCode = 6
+        versionName = "0.12.0-phone-home-reset"
     }
     productFlavors {
         create("full") {
@@ -22,8 +22,8 @@ android {
         }
         create("safe") {
             dimension = "capabilities"
-            versionCode = 5
-            versionName = "0.11.0-safe"
+            versionCode = 6
+            versionName = "0.12.0-safe"
         }
     }
     buildTypes {

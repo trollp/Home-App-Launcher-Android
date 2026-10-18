@@ -131,12 +131,23 @@
         android:paddingBottom="24dp">
 
         <Button
-            android:id="@+id/torchButton"
+            android:id="@+id/phoneButton"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="@string/torch" />
+            android:text="@string/open_phone"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/torchButton"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/torch"
+            android:textSize="14sp" />
 
         <Button
             android:id="@+id/cameraButton"
@@ -145,7 +156,8 @@
             android:layout_height="56dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="@string/open_camera" />
+            android:text="@string/open_camera"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <LinearLayout
