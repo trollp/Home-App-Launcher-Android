@@ -13,8 +13,8 @@ android {
         applicationId = "com.petertroll.quiethome"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "0.15.3-compact-home"
+        versionCode = 15
+        versionName = "0.16.0-context-assistant"
     }
     productFlavors {
         create("full") {
@@ -22,8 +22,8 @@ android {
         }
         create("safe") {
             dimension = "capabilities"
-            versionCode = 14
-            versionName = "0.15.3-safe"
+            versionCode = 15
+            versionName = "0.16.0-safe"
         }
     }
     buildTypes {

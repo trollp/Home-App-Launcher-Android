@@ -6,7 +6,7 @@ data class CoachContext(
     val weeklyTarget: Int,
     val rainStartsHour: Int?,
     val nextEventMinutes: Int? = null,
-    val routineName: String = "Gym",
+    val routineName: String = "your routine",
 )
 
 data class CoachAction(val id: String, val text: String, val reason: String)

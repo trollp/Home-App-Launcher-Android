@@ -228,7 +228,7 @@
     <string name="testing_connection">Testing connection…</string>
     <string name="ai_test_success">Connection works.</string>
     <string name="ai_test_failed">Connection failed: %1$s</string>
-    <string name="privacy_data_flow">Launcher search, routine history, and deterministic coaching stay on this device. AI is off by default and receives only the short facts needed for a requested suggestion.</string>
+    <string name="privacy_data_flow">AI is off by default and is contacted only when you tap Test connection or an explicit Refine action. Depending on that action, it receives bounded local wording and facts: Stockholm-local day phase and hour; Stockholm weather summary and timing; minutes until the next event (never its title); enabled routine names, actions, weekly targets and weekly progress; your selected capacity; bounded recent feedback by routine and day phase; candidate IDs, titles, reasons, durations and categories; or the complete bounded briefing, reflection proposal, or weekly observations being refined. It does not receive calendar titles, completion recency, app usage, notifications, location, contacts, or credentials. Local commands never leave the supplied candidates.</string>
     <string name="byok_risk">Use a dedicated, revocable provider key with a low spending limit. Keys are never included in source, logs, or backups.</string>
     <string name="delete_routine_history">Delete routine history</string>
     <string name="routine_history_deleted">Routine history deleted.</string>

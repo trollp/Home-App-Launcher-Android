@@ -33,4 +33,16 @@ class AiRequestFactoryTest {
         assertTrue(body.has("temperature"))
         assertEquals(0.2, body.getDouble("temperature"), 0.0)
     }
+
+    @Test fun `aggregate requests receive provider specific completion budgets without changing short defaults`() {
+        val openAi = JSONObject(AiRequestFactory.chatCompletionsBody(AiProvider.OPENAI, "gpt-5-nano", "aggregate", AiTask.AGGREGATE))
+        val groq = JSONObject(AiRequestFactory.chatCompletionsBody(AiProvider.GROQ, "model", "aggregate", AiTask.AGGREGATE))
+        assertEquals(768, openAi.getInt("max_completion_tokens"))
+        assertEquals(512, groq.getInt("max_completion_tokens"))
+        assertFalse(openAi.has("temperature"))
+        assertEquals("minimal", openAi.getString("reasoning_effort"))
+        assertEquals(0.2, groq.getDouble("temperature"), 0.0)
+        assertEquals(256, JSONObject(AiRequestFactory.chatCompletionsBody(AiProvider.OPENAI, "model", "short")).getInt("max_completion_tokens"))
+        assertEquals(80, JSONObject(AiRequestFactory.chatCompletionsBody(AiProvider.GROQ, "model", "short")).getInt("max_completion_tokens"))
+    }
 }

@@ -93,6 +93,7 @@ class LauncherActivity : AppCompatActivity() {
     private var weatherSnapshot: WeatherSnapshot? = null
     private var upcomingEvent: UpcomingEvent? = null
     private var started = false
+    private var proactiveShownThisSession = false
     private val catalogExecutor = Executors.newSingleThreadExecutor()
     private val contextExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -140,14 +141,14 @@ class LauncherActivity : AppCompatActivity() {
         binding.appsButton.setOnClickListener { showDrawer(requestKeyboard = true) }
         binding.homeButton.setOnClickListener { showHome(clearSearch = true) }
         binding.clock.setOnClickListener { openClock() }
-        binding.habitButton.setOnClickListener { toggleHabit() }
+        binding.habitButton.setOnClickListener { startActivity(Intent(this, AssistantActivity::class.java)) }
         binding.habitButton.setOnLongClickListener {
-            showRenameHabit()
+            startActivity(Intent(this, SettingsActivity::class.java))
             true
         }
         binding.weatherText.setOnClickListener { showWeatherDetails() }
-        binding.coachButton.setOnClickListener { showCoachDialog(currentCoach()) }
-        binding.briefingButton.setOnClickListener { showBriefing() }
+        binding.coachButton.setOnClickListener { startActivity(Intent(this, AssistantActivity::class.java)) }
+        binding.briefingButton.setOnClickListener { openAssistantBriefing() }
         binding.phoneButton.setOnClickListener { openPhone() }
         binding.cameraButton.setOnClickListener { openCamera() }
         binding.torchButton.setOnClickListener { requestOrToggleTorch() }
@@ -519,20 +520,16 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun renderHabit() {
-        val today = LocalDate.now().toEpochDay()
-        val done = preferences.isHabitDone(today)
-        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
-        binding.habitButton.text = getString(
-            if (done) R.string.routine_weekly_done else R.string.routine_weekly,
-            preferences.habitName,
-            insight.completedThisWeek,
-            insight.target,
-        )
-        binding.habitButton.contentDescription = getString(
-            if (done) R.string.habit_done else R.string.habit_not_done,
-            preferences.habitName
-        )
-        binding.habitButton.isSelected = done
+        if (preferences.routines.isEmpty()) {
+            binding.habitButton.text = "Add priorities"
+            binding.habitButton.contentDescription = "Add up to five routines or priorities"
+            binding.habitButton.isSelected = false
+            return
+        }
+        val active = preferences.routines.count { it.enabled }
+        binding.habitButton.text = "Priorities · $active active"
+        binding.habitButton.contentDescription = "Open $active active priorities"
+        binding.habitButton.isSelected = false
     }
 
     private fun toggleHabit() {
@@ -616,9 +613,39 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun renderCoach() {
         if (!::binding.isInitialized) return
-        val deferred = preferences.coachDeferredEpochDay == LocalDate.now().toEpochDay()
-        binding.coachButton.isVisible = !deferred
-        if (!deferred) binding.coachButton.text = currentCoach().text
+        val stockholm = ZoneId.of("Europe/Stockholm")
+        val now = java.time.ZonedDateTime.now(stockholm)
+        val day = now.toLocalDate().toEpochDay()
+        val deferred = preferences.coachDeferredEpochDay == day || System.currentTimeMillis() < preferences.laterUntilEpochMillis
+        val rainTiming = weatherSnapshot?.rainStartsAt?.atZone(stockholm)?.let { "Rain near ${it.hour}:00" }
+        val assistantContext = com.petertroll.quiethome.domain.AssistantContext(
+            epochDay = day,
+            localHour = now.hour,
+            dayPhase = com.petertroll.quiethome.domain.AssistantContext.phase(now.hour),
+            weatherSummary = weatherSnapshot?.headline(),
+            weatherTiming = rainTiming,
+            nextEventMinutes = upcomingEvent?.minutesUntil,
+            capacity = preferences.capacity,
+            routines = preferences.routines.filter { it.enabled },
+            feedback = emptyList(),
+            suppressedRoutineIds = preferences.suppressedRoutineDays.filterValues { it == day }.keys,
+            learningEnabled = preferences.learningEnabled,
+        )
+        val signature = com.petertroll.quiethome.domain.ProactivityPolicy.contextSignature(assistantContext)
+        val eligible = com.petertroll.quiethome.domain.ProactivityPolicy.shouldShowInSession(
+            preferences.proactivity, proactiveShownThisSession, day, preferences.lastProactiveEpochDay, signature,
+            preferences.lastProactiveContextSignature,
+        )
+        binding.coachButton.isVisible = !deferred && eligible && preferences.routines.any { it.enabled }
+        if (binding.coachButton.isVisible && !proactiveShownThisSession) {
+            binding.coachButton.text = "Open today’s context suggestion"
+            proactiveShownThisSession = true
+            preferences = preferences.copy(
+                lastProactiveEpochDay = if (preferences.proactivity == com.petertroll.quiethome.domain.Proactivity.ONCE_DAILY) day else preferences.lastProactiveEpochDay,
+                lastProactiveContextSignature = if (preferences.proactivity == com.petertroll.quiethome.domain.Proactivity.CONTEXT_CHANGES) signature else preferences.lastProactiveContextSignature,
+            )
+            store.save(preferences)
+        }
     }
 
     private fun showCoachDialog(action: CoachAction) {
@@ -657,6 +684,10 @@ class LauncherActivity : AppCompatActivity() {
                 }.onFailure { snackbar(getString(R.string.ai_test_failed, it.message ?: "error")).show() }
             }
         }
+    }
+
+    private fun openAssistantBriefing() {
+        startActivity(Intent(this, AssistantActivity::class.java).putExtra(AssistantActivity.EXTRA_OPEN_BRIEFING, true))
     }
 
     private fun showBriefing() {

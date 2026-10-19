@@ -13,8 +13,10 @@ Quiet Home is an original, local-first, text-focused Android home launcher desig
 - Optional local notification batching/silencing with an on-device inbox.
 - Optional Accessibility enforcement for configured limits when apps are opened outside Quiet Home.
 - Experimental per-app grayscale for sideloaded builds when `WRITE_SECURE_SETTINGS` is explicitly granted with ADB.
+- Local-first context assistant for up to five user-defined routines or priorities, with capacity, explainable one-action suggestions, morning briefing, evening reflection, and evidence-gated weekly review.
+- Optional Stockholm SMHI weather, read-only Outlook next-event timing, and explicit BYOK AI wording refinement. Calendar titles remain local; executable actions remain constrained to supplied local candidates, while dedicated bounded protocols handle briefing, reflection, and weekly-review wording.
 
-Quiet Home has no Internet permission, analytics, ads, account, or cloud backup. All preferences and notification-inbox content remain on the device.
+Quiet Home has no analytics, ads, account, or cloud backup. Routine, feedback, reflection, launcher, and notification-inbox data remain on the device. Internet access is used only for SMHI weather and user-configured Outlook/BYOK connections. AI calls occur only when the user taps **Test connection** or an explicit **Refine** action; the selected provider receives only the bounded fields disclosed in Settings. Calendar titles and completion recency are not sent.
 
 ## Permissions and special access
 

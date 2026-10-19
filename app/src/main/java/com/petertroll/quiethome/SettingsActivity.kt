@@ -8,6 +8,7 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -18,6 +19,9 @@ import androidx.core.view.ViewCompat
 import com.google.android.material.snackbar.Snackbar
 import com.petertroll.quiethome.domain.AiProvider
 import com.petertroll.quiethome.domain.OutlookSupport
+import com.petertroll.quiethome.domain.Proactivity
+import com.petertroll.quiethome.domain.Routine
+import com.petertroll.quiethome.domain.RoutineCollection
 import java.util.concurrent.Executors
 
 class SettingsActivity : AppCompatActivity() {
@@ -54,9 +58,12 @@ class SettingsActivity : AppCompatActivity() {
     private fun render() {
         root.removeAllViews()
         title(getString(R.string.settings))
+        val prefs = store.load()
 
         section(getString(R.string.settings_home))
-        action(getString(R.string.configure_routine)) { showRoutineSettings() }
+        action("Manage up to five routines / priorities") { showRoutineSettings() }
+        text(if (prefs.routines.isEmpty()) "No routines configured." else prefs.routines.joinToString("\n") { "${if (it.enabled) "On" else "Off"} · ${it.name} · ${it.weeklyTarget}/week" })
+        action("Proactive suggestions: ${prefs.proactivity.name.lowercase().replace('_', ' ')}") { chooseProactivity() }
         text(getString(R.string.weather_fixed_stockholm))
         action(getString(R.string.clear_weather_cache)) {
             WeatherRepository(this).clear()
@@ -64,7 +71,6 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         section(getString(R.string.settings_calendar))
-        val prefs = store.load()
         text(when {
             credentials.hasOutlookConnection() -> getString(R.string.outlook_connected)
             prefs.outlookClientId.isBlank() -> getString(R.string.outlook_not_configured)
@@ -94,9 +100,13 @@ class SettingsActivity : AppCompatActivity() {
         text(getString(R.string.privacy_data_flow))
         text(getString(R.string.smhi_attribution))
         text(getString(R.string.byok_risk))
+        action(if (prefs.learningEnabled) "Pause learning" else "Resume learning") {
+            store.save(prefs.copy(learningEnabled = !prefs.learningEnabled)); render()
+        }
+        action("Clear feedback") { store.save(prefs.copy(feedback = emptyList())); message("Feedback cleared.") }
         action(getString(R.string.delete_routine_history)) {
             val current = store.load()
-            store.save(current.copy(routineCompletedEpochDays = emptySet(), habitDoneEpochDay = -1L))
+            store.save(current.copy(routines = current.routines.map { it.copy(completedEpochDays = emptySet()) }, routineCompletedEpochDays = emptySet(), habitDoneEpochDay = -1L))
             message(getString(R.string.routine_history_deleted))
         }
 
@@ -106,30 +116,60 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showRoutineSettings() {
         val current = store.load()
-        val name = EditText(this).apply { setText(current.habitName); hint = getString(R.string.routine_name) }
+        val labels = current.routines.map { "${if (it.enabled) "On" else "Off"} · ${it.name}" }.toMutableList()
+        if (current.routines.size < RoutineCollection.MAX_ROUTINES) labels += "Add routine"
+        if (labels.isEmpty()) return editRoutine(null)
+        AlertDialog.Builder(this).setTitle("Routines and priorities").setItems(labels.toTypedArray()) { _, index ->
+            editRoutine(current.routines.getOrNull(index))
+        }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    private fun editRoutine(existing: Routine?) {
+        val current = store.load()
+        val name = EditText(this).apply { setText(existing?.name.orEmpty()); hint = getString(R.string.routine_name) }
+        val normal = EditText(this).apply { setText(existing?.normalAction.orEmpty()); hint = "Normal action" }
+        val smaller = EditText(this).apply { setText(existing?.smallerAction.orEmpty()); hint = "Smaller action" }
         val target = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            setText(current.routineWeeklyTarget.toString())
+            setText((existing?.weeklyTarget ?: 3).toString())
             hint = getString(R.string.weekly_target)
         }
+        val enabled = CheckBox(this).apply { text = "Enabled"; isChecked = existing?.enabled ?: true }
         val fields = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), 0, dp(24), 0)
-            addView(name)
-            addView(target)
+            addView(name); addView(normal); addView(smaller); addView(target); addView(enabled)
         }
         AlertDialog.Builder(this)
-            .setTitle(R.string.configure_routine)
+            .setTitle(if (existing == null) "Add routine" else "Edit routine")
             .setView(fields)
             .setPositiveButton(R.string.save) { _, _ ->
-                store.save(current.copy(
-                    habitName = name.text.toString().trim().ifEmpty { "Gym" },
-                    routineWeeklyTarget = target.text.toString().toIntOrNull()?.coerceIn(1, 7) ?: 3,
-                ))
-                render()
+                val cleanName = name.text.toString().trim().take(60)
+                if (cleanName.isNotEmpty()) {
+                    val id = existing?.id ?: "routine-${System.currentTimeMillis()}"
+                    val changed = Routine(id, cleanName,
+                        normal.text.toString().trim().take(100).ifEmpty { "Spend 15 minutes on $cleanName" },
+                        smaller.text.toString().trim().take(100).ifEmpty { "Take one small step on $cleanName" },
+                        target.text.toString().toIntOrNull()?.coerceIn(1, 7) ?: 3,
+                        enabled.isChecked, existing?.completedEpochDays ?: emptySet())
+                    val list = if (existing == null) current.routines + changed else current.routines.map { if (it.id == existing.id) changed else it }
+                    store.save(current.copy(routines = RoutineCollection.sanitize(list)))
+                    render()
+                }
+            }
+            .setNeutralButton(if (existing == null) "Reset" else "Delete") { _, _ ->
+                if (existing != null) { store.save(current.copy(routines = current.routines.filterNot { it.id == existing.id })); render() }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun chooseProactivity() {
+        val labels = arrayOf("Off", "Once daily", "Context changes")
+        val current = store.load()
+        AlertDialog.Builder(this).setTitle("Proactive suggestion card").setSingleChoiceItems(labels, current.proactivity.ordinal) { dialog, which ->
+            store.save(current.copy(proactivity = Proactivity.entries[which])); dialog.dismiss(); render()
+        }.setNegativeButton(R.string.cancel, null).show()
     }
 
     private fun chooseProvider() {

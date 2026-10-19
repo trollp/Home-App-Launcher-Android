@@ -14,7 +14,7 @@ data class LauncherPreferences(
     val appSort: AppSort = AppSort.ALPHABETICAL,
     val launchCounts: Map<String, Long> = emptyMap(),
     val lastLaunchEpochMillis: Map<String, Long> = emptyMap(),
-    val habitName: String = "Go to the gym",
+    val habitName: String = "Routine",
     val habitDoneEpochDay: Long = -1L,
     val routineCompletedEpochDays: Set<Long> = emptySet(),
     val routineWeeklyTarget: Int = 3,
@@ -22,6 +22,17 @@ data class LauncherPreferences(
     val aiProvider: AiProvider = AiProvider.NONE,
     val aiModel: String = "gpt-5-nano",
     val outlookClientId: String = "",
+    val routines: List<Routine> = emptyList(),
+    val capacity: Capacity = Capacity.NORMAL,
+    val feedback: List<FeedbackEvent> = emptyList(),
+    val reflections: List<ReflectionEvent> = emptyList(),
+    val learningEnabled: Boolean = true,
+    val proactivity: Proactivity = Proactivity.ONCE_DAILY,
+    val suppressedRoutineDays: Map<String, Long> = emptyMap(),
+    val laterUntilEpochMillis: Long = 0L,
+    val lastProactiveEpochDay: Long = -1L,
+    val lastProactiveContextSignature: String = "",
+    val tomorrowProposal: TomorrowProposal? = null,
 ) {
     fun isFavorite(packageName: String) = packageName in favoritePackages
     fun isHidden(packageName: String) = packageName in hiddenPackages
@@ -47,17 +58,19 @@ data class LauncherPreferences(
     }
 
     fun renameHabit(name: String): LauncherPreferences =
-        copy(habitName = name.trim().ifEmpty { "Gym" })
+        copy(habitName = name.trim().ifEmpty { "Routine" })
 
-    fun routineState(): RoutineState = RoutineState(
-        name = habitName,
-        weeklyTarget = routineWeeklyTarget,
-        completedEpochDays = routineCompletedEpochDays + habitDoneEpochDay.takeIf { it >= 0L }.let(::listOfNotNull),
-    )
+    fun routineState(): RoutineState = routines.firstOrNull()?.let {
+        RoutineState(it.name, it.weeklyTarget, it.completedEpochDays)
+    } ?: RoutineState(habitName, routineWeeklyTarget,
+        routineCompletedEpochDays + habitDoneEpochDay.takeIf { it >= 0L }.let(::listOfNotNull))
 
     fun isHabitDone(epochDay: Long): Boolean = epochDay in routineState().completedEpochDays
 
     fun toggleHabit(epochDay: Long): LauncherPreferences {
+        if (routines.isNotEmpty()) return copy(routines = routines.mapIndexed { index, routine ->
+            if (index == 0) routine.toggle(epochDay) else routine
+        })
         val toggled = routineState().toggle(epochDay)
         return copy(routineCompletedEpochDays = toggled.completedEpochDays, habitDoneEpochDay = -1L)
     }
