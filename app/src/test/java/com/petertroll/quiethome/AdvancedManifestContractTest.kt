@@ -13,7 +13,8 @@ class AdvancedManifestContractTest {
         assertTrue(manifest.contains("android.permission.POST_NOTIFICATIONS"))
         assertTrue(manifest.contains("android.permission.BIND_ACCESSIBILITY_SERVICE"))
         assertTrue(manifest.contains("@xml/accessibility_service_config"))
-        assertFalse(manifest.contains("android.permission.INTERNET"))
+        assertTrue(manifest.contains("android.permission.INTERNET"))
+        assertFalse(manifest.contains("ACCESS_FINE_LOCATION"))
         assertFalse(manifest.contains("QUERY_ALL_PACKAGES"))
     }
 

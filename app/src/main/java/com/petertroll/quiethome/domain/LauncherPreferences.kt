@@ -3,6 +3,7 @@ package com.petertroll.quiethome.domain
 enum class AppTheme { SYSTEM, LIGHT, DARK }
 enum class AppSort { ALPHABETICAL, MOST_USED, RECENT }
 enum class AppFilter { ALL, FAVORITES, OTHERS }
+enum class AiProvider { NONE, OPENAI, GROQ }
 
 data class LauncherPreferences(
     val favoritePackages: Set<String> = emptySet(),
@@ -14,7 +15,13 @@ data class LauncherPreferences(
     val launchCounts: Map<String, Long> = emptyMap(),
     val lastLaunchEpochMillis: Map<String, Long> = emptyMap(),
     val habitName: String = "Go to the gym",
-    val habitDoneEpochDay: Long = -1L
+    val habitDoneEpochDay: Long = -1L,
+    val routineCompletedEpochDays: Set<Long> = emptySet(),
+    val routineWeeklyTarget: Int = 3,
+    val coachDeferredEpochDay: Long = -1L,
+    val aiProvider: AiProvider = AiProvider.NONE,
+    val aiModel: String = "gpt-5-nano",
+    val outlookClientId: String = "",
 ) {
     fun isFavorite(packageName: String) = packageName in favoritePackages
     fun isHidden(packageName: String) = packageName in hiddenPackages
@@ -40,10 +47,18 @@ data class LauncherPreferences(
     }
 
     fun renameHabit(name: String): LauncherPreferences =
-        copy(habitName = name.trim().ifEmpty { "Daily goal" })
+        copy(habitName = name.trim().ifEmpty { "Gym" })
 
-    fun isHabitDone(epochDay: Long): Boolean = habitDoneEpochDay == epochDay
+    fun routineState(): RoutineState = RoutineState(
+        name = habitName,
+        weeklyTarget = routineWeeklyTarget,
+        completedEpochDays = routineCompletedEpochDays + habitDoneEpochDay.takeIf { it >= 0L }.let(::listOfNotNull),
+    )
 
-    fun toggleHabit(epochDay: Long): LauncherPreferences =
-        copy(habitDoneEpochDay = if (isHabitDone(epochDay)) -1L else epochDay)
+    fun isHabitDone(epochDay: Long): Boolean = epochDay in routineState().completedEpochDays
+
+    fun toggleHabit(epochDay: Long): LauncherPreferences {
+        val toggled = routineState().toggle(epochDay)
+        return copy(routineCompletedEpochDays = toggled.completedEpochDays, habitDoneEpochDay = -1L)
+    }
 }

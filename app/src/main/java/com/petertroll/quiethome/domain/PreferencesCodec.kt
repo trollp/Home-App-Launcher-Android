@@ -17,8 +17,15 @@ object PreferencesCodec {
                 .getOrDefault(AppSort.ALPHABETICAL),
             launchCounts = json.optJSONObject("launchCounts").longMap(),
             lastLaunchEpochMillis = json.optJSONObject("lastLaunchEpochMillis").longMap(),
-            habitName = json.optString("habitName", "Go to the gym").trim().ifEmpty { "Daily goal" },
-            habitDoneEpochDay = json.optLong("habitDoneEpochDay", -1L)
+            habitName = json.optString("habitName", "Go to the gym").trim().ifEmpty { "Gym" },
+            habitDoneEpochDay = json.optLong("habitDoneEpochDay", -1L),
+            routineCompletedEpochDays = json.optJSONArray("routineCompletedEpochDays").longs(),
+            routineWeeklyTarget = json.optInt("routineWeeklyTarget", 3).coerceIn(1, 7),
+            coachDeferredEpochDay = json.optLong("coachDeferredEpochDay", -1L),
+            aiProvider = runCatching { AiProvider.valueOf(json.optString("aiProvider", "NONE")) }
+                .getOrDefault(AiProvider.NONE),
+            aiModel = json.optString("aiModel", "gpt-5-nano").trim().ifEmpty { "gpt-5-nano" },
+            outlookClientId = json.optString("outlookClientId", "").trim(),
         )
     }.getOrDefault(LauncherPreferences())
 
@@ -43,11 +50,21 @@ object PreferencesCodec {
             .put("lastLaunchEpochMillis", lastLaunches)
             .put("habitName", value.habitName)
             .put("habitDoneEpochDay", value.habitDoneEpochDay)
+            .put("routineCompletedEpochDays", JSONArray(value.routineCompletedEpochDays.sorted()))
+            .put("routineWeeklyTarget", value.routineWeeklyTarget)
+            .put("coachDeferredEpochDay", value.coachDeferredEpochDay)
+            .put("aiProvider", value.aiProvider.name)
+            .put("aiModel", value.aiModel)
+            .put("outlookClientId", value.outlookClientId)
             .toString()
     }
 
     private fun JSONArray?.strings(): Set<String> = if (this == null) emptySet() else buildSet {
         for (index in 0 until length()) optString(index).takeIf(String::isNotBlank)?.let(::add)
+    }
+
+    private fun JSONArray?.longs(): Set<Long> = if (this == null) emptySet() else buildSet {
+        for (index in 0 until length()) optLong(index, -1L).takeIf { it >= 0L }?.let(::add)
     }
 
     private fun JSONObject?.stringMap(): Map<String, String> = if (this == null) emptyMap() else buildMap {

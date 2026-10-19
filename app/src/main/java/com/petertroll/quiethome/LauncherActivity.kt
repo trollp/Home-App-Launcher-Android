@@ -15,6 +15,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -46,15 +47,24 @@ import com.petertroll.quiethome.domain.AppEntry
 import com.petertroll.quiethome.domain.AppFilter
 import com.petertroll.quiethome.domain.AppSort
 import com.petertroll.quiethome.domain.AppTheme
+import com.petertroll.quiethome.domain.AiProvider
+import com.petertroll.quiethome.domain.CoachAction
+import com.petertroll.quiethome.domain.CoachContext
 import com.petertroll.quiethome.domain.DisplayApp
 import com.petertroll.quiethome.domain.GestureNudgePolicy
 import com.petertroll.quiethome.domain.HomeSections
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
 import com.petertroll.quiethome.domain.LauncherGesturePolicy
+import com.petertroll.quiethome.domain.LocalBriefingComposer
+import com.petertroll.quiethome.domain.MicroCoachPolicy
+import com.petertroll.quiethome.domain.RoutinePolicy
+import com.petertroll.quiethome.domain.UpcomingEvent
+import com.petertroll.quiethome.domain.WeatherSnapshot
 import com.google.android.material.snackbar.Snackbar
 import java.text.DateFormat
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 import java.util.concurrent.Executors
 
@@ -62,6 +72,8 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLauncherBinding
     private lateinit var store: PreferencesStore
     private lateinit var repository: AndroidAppRepository
+    private lateinit var weatherRepository: WeatherRepository
+    private lateinit var credentialStore: CredentialStore
     private lateinit var appAdapter: AppListAdapter
     private lateinit var gestureDetector: GestureDetector
     private var pendingGestureAction: LauncherGestureAction? = null
@@ -77,8 +89,12 @@ class LauncherActivity : AppCompatActivity() {
     private var torchEnabled = false
     private var catalogGeneration = 0
     private var receiverRegistered = false
+    private var batteryReceiverRegistered = false
+    private var weatherSnapshot: WeatherSnapshot? = null
+    private var upcomingEvent: UpcomingEvent? = null
     private var started = false
     private val catalogExecutor = Executors.newSingleThreadExecutor()
+    private val contextExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val torchPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
@@ -103,6 +119,11 @@ class LauncherActivity : AppCompatActivity() {
             refreshCatalog()
         }
     }
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            renderBattery(intent)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         store = PreferencesStore(this)
@@ -116,6 +137,8 @@ class LauncherActivity : AppCompatActivity() {
         ViewCompat.setAccessibilityHeading(binding.allAppsHeading, true)
         binding.clock.contentDescription = getString(R.string.open_clock)
         repository = AndroidAppRepository(this)
+        weatherRepository = WeatherRepository(this)
+        credentialStore = CredentialStore(this)
         appAdapter = AppListAdapter()
         binding.appList.adapter = appAdapter
 
@@ -127,6 +150,9 @@ class LauncherActivity : AppCompatActivity() {
             showRenameHabit()
             true
         }
+        binding.weatherText.setOnClickListener { showWeatherDetails() }
+        binding.coachButton.setOnClickListener { showCoachDialog(currentCoach()) }
+        binding.briefingButton.setOnClickListener { showBriefing() }
         binding.phoneButton.setOnClickListener { openPhone() }
         binding.cameraButton.setOnClickListener { openCamera() }
         binding.torchButton.setOnClickListener { requestOrToggleTorch() }
@@ -148,10 +174,14 @@ class LauncherActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        preferences = store.load()
         LaunchRouter.ownerStarted(this)
         started = true
         registerPackageReceiver()
+        registerBatteryReceiver()
         refreshCatalog()
+        refreshWeather()
+        refreshCalendar()
     }
 
     override fun onResume() {
@@ -177,11 +207,16 @@ class LauncherActivity : AppCompatActivity() {
             unregisterReceiver(packageReceiver)
             receiverRegistered = false
         }
+        if (batteryReceiverRegistered) {
+            unregisterReceiver(batteryReceiver)
+            batteryReceiverRegistered = false
+        }
         super.onStop()
     }
 
     override fun onDestroy() {
         catalogExecutor.shutdownNow()
+        contextExecutor.shutdownNow()
         super.onDestroy()
     }
 
@@ -257,6 +292,16 @@ class LauncherActivity : AppCompatActivity() {
         receiverRegistered = true
     }
 
+    private fun registerBatteryReceiver() {
+        if (batteryReceiverRegistered) return
+        val sticky = ContextCompat.registerReceiver(
+            this, batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        batteryReceiverRegistered = true
+        renderBattery(sticky)
+    }
+
     private fun refreshCatalog() {
         val generation = ++catalogGeneration
         catalogExecutor.execute {
@@ -277,6 +322,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun renderHome() {
         renderHabit()
+        renderCoach()
         binding.favoriteList.removeAllViews()
         val favorites = HomeSections.from(catalog()).favorites
         if (!catalogLoaded) {
@@ -443,6 +489,9 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun showSettingsMenu() {
         val actions = mutableListOf<Pair<Int, () -> Unit>>()
+        actions += R.string.daily_information_settings to {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
         actions += R.string.launcher_settings to { showAppearanceMenu() }
         if (resources.getBoolean(R.bool.special_access_features_available)) {
             actions += R.string.permission_center to {
@@ -489,10 +538,14 @@ class LauncherActivity : AppCompatActivity() {
     }
 
     private fun renderHabit() {
-        val done = preferences.isHabitDone(LocalDate.now().toEpochDay())
+        val today = LocalDate.now().toEpochDay()
+        val done = preferences.isHabitDone(today)
+        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
         binding.habitButton.text = getString(
-            if (done) R.string.habit_button_done else R.string.habit_button_not_done,
-            preferences.habitName
+            if (done) R.string.routine_weekly_done else R.string.routine_weekly,
+            preferences.habitName,
+            insight.completedThisWeek,
+            insight.target,
         )
         binding.habitButton.contentDescription = getString(
             if (done) R.string.habit_done else R.string.habit_not_done,
@@ -503,6 +556,160 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun toggleHabit() {
         update(preferences.toggleHabit(LocalDate.now().toEpochDay()))
+    }
+
+    private fun renderBattery(intent: Intent?) {
+        if (!::binding.isInitialized || intent == null) return
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
+        if (level < 0 || scale <= 0) return
+        val percent = (level * 100 / scale).coerceIn(0, 100)
+        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN)
+        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        binding.batteryText.text = when {
+            percent == 100 && charging -> getString(R.string.battery_full)
+            charging -> getString(R.string.battery_charging, percent)
+            else -> getString(R.string.battery_percent, percent)
+        }
+        binding.batteryText.contentDescription = getString(
+            if (charging) R.string.battery_accessibility_charging else R.string.battery_accessibility,
+            percent,
+        )
+    }
+
+    private fun refreshWeather() {
+        val cached = weatherRepository.cached()
+        if (cached != null) {
+            weatherSnapshot = cached
+            renderWeather(cached)
+            if (weatherRepository.isFresh(cached)) return
+        }
+        contextExecutor.execute {
+            val refreshed = runCatching { weatherRepository.refresh() }.getOrNull()
+            mainHandler.post {
+                if (!started || isDestroyed) return@post
+                if (refreshed != null) {
+                    weatherSnapshot = refreshed
+                    renderWeather(refreshed)
+                    renderCoach()
+                } else if (weatherSnapshot == null) {
+                    binding.weatherText.setText(R.string.weather_unavailable)
+                }
+            }
+        }
+    }
+
+    private fun refreshCalendar() {
+        val clientId = preferences.outlookClientId
+        if (clientId.isBlank() || !credentialStore.hasOutlookConnection()) {
+            upcomingEvent = null
+            return
+        }
+        contextExecutor.execute {
+            val event = runCatching { OutlookCalendarClient(this).nextEvent(clientId) }.getOrNull()
+            mainHandler.post {
+                if (!started || isDestroyed) return@post
+                upcomingEvent = event
+                renderCoach()
+            }
+        }
+    }
+
+    private fun renderWeather(snapshot: WeatherSnapshot) {
+        val headline = snapshot.headline()
+        binding.weatherText.text = if (weatherRepository.isFresh(snapshot)) {
+            headline
+        } else {
+            getString(R.string.weather_stale, headline)
+        }
+        binding.weatherText.contentDescription = "Stockholm: $headline. ${snapshot.detail()}"
+    }
+
+    private fun showWeatherDetails() {
+        val snapshot = weatherSnapshot ?: return showMessage(R.string.weather_unavailable)
+        AlertDialog.Builder(this)
+            .setTitle(snapshot.headline())
+            .setMessage(getString(R.string.weather_details, snapshot.detail(), getString(R.string.smhi_attribution)))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun currentCoach(): CoachAction {
+        val today = LocalDate.now().toEpochDay()
+        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
+        val stockholm = ZoneId.of("Europe/Stockholm")
+        val now = java.time.ZonedDateTime.now(stockholm)
+        val rain = weatherSnapshot?.rainStartsAt?.atZone(stockholm)
+        val rainHour = rain?.takeIf { it.toLocalDate() == now.toLocalDate() }?.hour
+        return MicroCoachPolicy.choose(CoachContext(
+            now.hour,
+            insight.completedThisWeek,
+            insight.target,
+            rainHour,
+            upcomingEvent?.minutesUntil,
+            preferences.habitName,
+        ))
+    }
+
+    private fun renderCoach() {
+        if (!::binding.isInitialized) return
+        val deferred = preferences.coachDeferredEpochDay == LocalDate.now().toEpochDay()
+        binding.coachButton.isVisible = !deferred
+        if (!deferred) binding.coachButton.text = currentCoach().text
+    }
+
+    private fun showCoachDialog(action: CoachAction) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.coach_title)
+            .setMessage("${action.text}\n\n${getString(R.string.coach_reason)}: ${action.reason}")
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(R.string.later) { _, _ ->
+                update(preferences.copy(coachDeferredEpochDay = LocalDate.now().toEpochDay()))
+            }
+            .setNeutralButton(R.string.ask_ai) { _, _ -> requestAiSuggestion(action) }
+            .show()
+    }
+
+    private fun requestAiSuggestion(local: CoachAction) {
+        val prefs = preferences
+        val key = credentialStore.apiKey(prefs.aiProvider)
+        if (prefs.aiProvider == AiProvider.NONE || key == null) {
+            showMessage(R.string.ai_unavailable)
+            return
+        }
+        snackbar(R.string.ai_thinking).show()
+        val insight = RoutinePolicy.evaluate(prefs.routineState(), LocalDate.now().toEpochDay())
+        val facts = "Routine: ${prefs.habitName}. This week: ${insight.completedThisWeek}/${insight.target}. " +
+            "Weather: ${weatherSnapshot?.headline() ?: "unavailable"}. Local action: ${local.text}"
+        contextExecutor.execute {
+            val result = runCatching { AiCoachClient().suggest(prefs.aiProvider, key, prefs.aiModel, facts) }
+            mainHandler.post {
+                if (!started || isDestroyed) return@post
+                result.onSuccess { suggestion ->
+                    AlertDialog.Builder(this)
+                        .setTitle(R.string.ai_suggestion_title)
+                        .setMessage(suggestion)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }.onFailure { snackbar(getString(R.string.ai_test_failed, it.message ?: "error")).show() }
+            }
+        }
+    }
+
+    private fun showBriefing() {
+        val today = LocalDate.now().toEpochDay()
+        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
+        val items = LocalBriefingComposer.compose(
+            weather = weatherSnapshot?.let { "Stockholm: ${it.headline()}. ${it.detail()}." },
+            nextEvent = upcomingEvent?.let { "Next: ${it.title} in ${it.minutesUntil} minutes." },
+            routine = "${insight.momentum}. ${insight.message}",
+            coach = currentCoach().text,
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.briefing_title)
+            .setMessage(items.joinToString("\n\n").ifBlank { getString(R.string.briefing_empty) })
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun showRenameHabit() {

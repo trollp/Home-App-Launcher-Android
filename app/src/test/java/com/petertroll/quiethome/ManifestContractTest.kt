@@ -36,9 +36,23 @@ class ManifestContractTest {
         assertEquals("@xml/data_extraction_rules", application.androidAttribute("dataExtractionRules"))
     }
 
-    @Test fun `launcher requests no network access`() {
-        assertFalse(manifest.contains("android.permission.INTERNET"))
-        assertFalse(manifest.contains("android.permission.ACCESS_NETWORK_STATE"))
+    @Test fun `connected context requests network but never location access`() {
+        assertTrue(manifest.contains("android.permission.INTERNET"))
+        assertTrue(manifest.contains("android.permission.ACCESS_NETWORK_STATE"))
+        assertFalse(manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
+        assertFalse(manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
+    }
+
+    @Test fun `only minimal callback activity is exported for Outlook redirect`() {
+        val activities = document.getElementsByTagName("activity").elements()
+        val settings = activities.single { it.androidAttribute("name") == ".SettingsActivity" }
+        val callback = activities.single { it.androidAttribute("name") == ".OutlookOAuthCallbackActivity" }
+        assertEquals("false", settings.androidAttribute("exported"))
+        assertEquals("true", callback.androidAttribute("exported"))
+        val data = callback.getElementsByTagName("data").elements().single()
+        assertEquals("msauth", data.androidAttribute("scheme"))
+        assertEquals("com.petertroll.quiethome", data.androidAttribute("host"))
+        assertEquals("/0qyOYJyiO5ZLlV7HwxfLMQBxMuQ=", data.androidAttribute("path"))
     }
 
     private fun org.w3c.dom.NodeList.elements(): List<Element> =

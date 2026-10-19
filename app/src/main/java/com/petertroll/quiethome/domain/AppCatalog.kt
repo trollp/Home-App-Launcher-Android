@@ -26,8 +26,7 @@ class AppCatalog(
         val needle = normalize(query.trim())
         val filtered = visibleApps().asSequence()
             .filter {
-                needle.isEmpty() || normalize(it.displayLabel).contains(needle) ||
-                    normalize(it.packageName).contains(needle)
+                needle.isEmpty() || searchScore(it, needle) > 0
             }
             .filter {
                 when (filter) {
@@ -40,16 +39,28 @@ class AppCatalog(
         val alphabetical = compareBy<DisplayApp> { normalize(it.displayLabel) }
             .thenBy { it.packageName }
             .thenBy { it.activityName }
-        val comparator = when (sort) {
-            AppSort.ALPHABETICAL -> alphabetical
-            AppSort.MOST_USED -> compareByDescending<DisplayApp> {
+        val comparator = when {
+            needle.isNotEmpty() -> compareByDescending<DisplayApp> { searchScore(it, needle) }.then(alphabetical)
+            sort == AppSort.ALPHABETICAL -> alphabetical
+            sort == AppSort.MOST_USED -> compareByDescending<DisplayApp> {
                 preferences.launchCounts[it.packageName] ?: 0L
             }.then(alphabetical)
-            AppSort.RECENT -> compareByDescending<DisplayApp> {
+            else -> compareByDescending<DisplayApp> {
                 preferences.lastLaunchEpochMillis[it.packageName] ?: 0L
             }.then(alphabetical)
         }
         return filtered.sortedWith(comparator)
+    }
+
+    private fun searchScore(app: DisplayApp, needle: String): Int {
+        val label = normalize(app.displayLabel)
+        val packageName = normalize(app.packageName)
+        if (label == needle) return 100
+        if (label.startsWith(needle)) return 90
+        if (label.contains(needle) || packageName.contains(needle)) return 80
+        val queryTokens = needle.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val terms = queryTokens.flatMap { intentTerms[it].orEmpty() }.toSet()
+        return if (terms.any { label.contains(it) || packageName.contains(it) }) 60 else 0
     }
 
     private fun toDisplayApp(entry: AppEntry): DisplayApp {
@@ -61,6 +72,21 @@ class AppCatalog(
     private fun normalize(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFD)
         .replace("\\p{M}+".toRegex(), "")
         .lowercase(Locale.ROOT)
+
+    private companion object {
+        val intentTerms = mapOf(
+            "navigate" to setOf("map", "maps"),
+            "directions" to setOf("map", "maps"),
+            "listen" to setOf("spotify", "music", "audio"),
+            "play" to setOf("spotify", "music", "audio"),
+            "music" to setOf("spotify", "music", "audio"),
+            "message" to setOf("signal", "message", "chat", "whatsapp"),
+            "send" to setOf("signal", "message", "chat", "whatsapp"),
+            "chat" to setOf("signal", "message", "chat", "whatsapp"),
+            "photo" to setOf("camera", "photo"),
+            "pay" to setOf("bank", "wallet", "pay"),
+        )
+    }
 }
 
 data class HomeSections(val favorites: List<DisplayApp>, val allApps: List<DisplayApp>) {
