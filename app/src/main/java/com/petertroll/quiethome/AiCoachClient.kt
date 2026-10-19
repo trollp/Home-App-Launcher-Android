@@ -49,9 +49,11 @@ object AiRequestFactory {
         return JSONObject()
             .put("model", model)
             .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
-            .put("max_completion_tokens", 80)
+            .put("max_completion_tokens", if (provider == AiProvider.OPENAI) 256 else 80)
             .apply {
-                // GPT-5 reasoning models reject non-default temperature values.
+                // GPT-5 reasoning consumes completion tokens before producing visible text.
+                // Give nano enough headroom and use its lowest reasoning effort for this short task.
+                if (provider == AiProvider.OPENAI) put("reasoning_effort", "minimal")
                 if (provider == AiProvider.GROQ) put("temperature", 0.2)
             }
             .toString()

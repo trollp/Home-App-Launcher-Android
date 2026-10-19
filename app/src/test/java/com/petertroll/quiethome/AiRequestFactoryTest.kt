@@ -16,7 +16,8 @@ class AiRequestFactoryTest {
         ))
 
         assertEquals("gpt-5-nano", body.getString("model"))
-        assertEquals(80, body.getInt("max_completion_tokens"))
+        assertEquals(256, body.getInt("max_completion_tokens"))
+        assertEquals("minimal", body.getString("reasoning_effort"))
         assertFalse(body.has("temperature"))
     }
 
@@ -27,6 +28,8 @@ class AiRequestFactoryTest {
             prompt = "Give one action",
         ))
 
+        assertEquals(80, body.getInt("max_completion_tokens"))
+        assertFalse(body.has("reasoning_effort"))
         assertTrue(body.has("temperature"))
         assertEquals(0.2, body.getDouble("temperature"), 0.0)
     }
