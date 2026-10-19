@@ -15,7 +15,6 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
-import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -53,6 +52,7 @@ import com.petertroll.quiethome.domain.CoachContext
 import com.petertroll.quiethome.domain.DisplayApp
 import com.petertroll.quiethome.domain.GestureNudgePolicy
 import com.petertroll.quiethome.domain.HomeSections
+import com.petertroll.quiethome.domain.HomeDateFormatter
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
 import com.petertroll.quiethome.domain.LauncherGesturePolicy
@@ -89,7 +89,7 @@ class LauncherActivity : AppCompatActivity() {
     private var torchEnabled = false
     private var catalogGeneration = 0
     private var receiverRegistered = false
-    private var batteryReceiverRegistered = false
+
     private var weatherSnapshot: WeatherSnapshot? = null
     private var upcomingEvent: UpcomingEvent? = null
     private var started = false
@@ -109,7 +109,7 @@ class LauncherActivity : AppCompatActivity() {
         override fun run() {
             val now = Date()
             binding.clock.text = DateFormat.getTimeInstance(DateFormat.SHORT).format(now)
-            binding.date.text = DateFormat.getDateInstance(DateFormat.FULL).format(now)
+            binding.date.text = HomeDateFormatter.format(LocalDate.now())
             renderHabit()
             mainHandler.postDelayed(this, CLOCK_REFRESH_MS)
         }
@@ -117,11 +117,6 @@ class LauncherActivity : AppCompatActivity() {
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             refreshCatalog()
-        }
-    }
-    private val batteryReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            renderBattery(intent)
         }
     }
 
@@ -178,7 +173,6 @@ class LauncherActivity : AppCompatActivity() {
         LaunchRouter.ownerStarted(this)
         started = true
         registerPackageReceiver()
-        registerBatteryReceiver()
         refreshCatalog()
         refreshWeather()
         refreshCalendar()
@@ -206,10 +200,6 @@ class LauncherActivity : AppCompatActivity() {
         if (receiverRegistered) {
             unregisterReceiver(packageReceiver)
             receiverRegistered = false
-        }
-        if (batteryReceiverRegistered) {
-            unregisterReceiver(batteryReceiver)
-            batteryReceiverRegistered = false
         }
         super.onStop()
     }
@@ -292,15 +282,6 @@ class LauncherActivity : AppCompatActivity() {
         receiverRegistered = true
     }
 
-    private fun registerBatteryReceiver() {
-        if (batteryReceiverRegistered) return
-        val sticky = ContextCompat.registerReceiver(
-            this, batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED),
-            ContextCompat.RECEIVER_NOT_EXPORTED,
-        )
-        batteryReceiverRegistered = true
-        renderBattery(sticky)
-    }
 
     private fun refreshCatalog() {
         val generation = ++catalogGeneration
@@ -558,24 +539,6 @@ class LauncherActivity : AppCompatActivity() {
         update(preferences.toggleHabit(LocalDate.now().toEpochDay()))
     }
 
-    private fun renderBattery(intent: Intent?) {
-        if (!::binding.isInitialized || intent == null) return
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
-        if (level < 0 || scale <= 0) return
-        val percent = (level * 100 / scale).coerceIn(0, 100)
-        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN)
-        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-        binding.batteryText.text = when {
-            percent == 100 && charging -> getString(R.string.battery_full)
-            charging -> getString(R.string.battery_charging, percent)
-            else -> getString(R.string.battery_percent, percent)
-        }
-        binding.batteryText.contentDescription = getString(
-            if (charging) R.string.battery_accessibility_charging else R.string.battery_accessibility,
-            percent,
-        )
-    }
 
     private fun refreshWeather() {
         val cached = weatherRepository.cached()

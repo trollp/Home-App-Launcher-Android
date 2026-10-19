@@ -174,11 +174,7 @@
     <string name="weather_unavailable">Stockholm weather unavailable</string>
     <string name="weather_stale">%1$s · updated earlier</string>
     <string name="weather_details">%1$s\n%2$s\nForecast in Celsius. Source: SMHI.</string>
-    <string name="battery_percent">%1$d%%</string>
-    <string name="battery_charging">%1$d%% ⚡</string>
-    <string name="battery_full">100%% ✓</string>
-    <string name="battery_accessibility">Battery %1$d percent</string>
-    <string name="battery_accessibility_charging">Battery %1$d percent, charging</string>
+
     <string name="routine_weekly">%1$s · %2$d/%3$d this week</string>
     <string name="routine_weekly_done">✓ %1$s · %2$d/%3$d this week</string>
     <string name="coach_title">One useful action</string>
@@ -232,7 +228,7 @@
     <string name="testing_connection">Testing connection…</string>
     <string name="ai_test_success">Connection works.</string>
     <string name="ai_test_failed">Connection failed: %1$s</string>
-    <string name="privacy_data_flow">Launcher search, routine history, battery state, and deterministic coaching stay on this device. AI is off by default and receives only the short facts needed for a requested suggestion.</string>
+    <string name="privacy_data_flow">Launcher search, routine history, and deterministic coaching stay on this device. AI is off by default and receives only the short facts needed for a requested suggestion.</string>
     <string name="byok_risk">Use a dedicated, revocable provider key with a low spending limit. Keys are never included in source, logs, or backups.</string>
     <string name="delete_routine_history">Delete routine history</string>
     <string name="routine_history_deleted">Routine history deleted.</string>

@@ -11,9 +11,17 @@ class HomeContextContractTest {
     private val manifest = File(root, "app/src/main/AndroidManifest.xml").readText()
     private val strings = File(root, "app/src/main/res/values/strings.xml").readText()
 
-    @Test fun `home has subtle weather battery briefing and weekly routine above favorites`() {
-        val ids = listOf("weatherText", "batteryText", "coachButton", "habitButton", "briefingButton", "favoriteList")
+    @Test fun `home has compact date weather briefing and weekly routine above favorites`() {
+        val ids = listOf("dateWeatherRow", "date", "weatherText", "coachButton", "habitButton", "briefingButton", "favoriteList")
         ids.forEach { assertTrue("missing $it", layout.contains("@+id/$it")) }
+        assertFalse("battery duplicates the system status bar", layout.contains("@+id/batteryText"))
+        assertTrue("top padding should not create an empty band", layout.contains("android:paddingTop=\"0dp\""))
+        val rowStart = layout.indexOf("@+id/dateWeatherRow")
+        val rowEnd = layout.indexOf("</LinearLayout>", rowStart)
+        val row = layout.substring(rowStart, rowEnd)
+        assertTrue(row.indexOf("@+id/date") < row.indexOf("@+id/weatherText"))
+        val weather = row.substring(row.indexOf("@+id/weatherText"))
+        assertTrue("weather needs a full touch target", weather.contains("android:minHeight=\"48dp\""))
         assertTrue(layout.indexOf("@+id/weatherText") < layout.indexOf("@+id/favoriteList"))
         assertTrue(layout.indexOf("@+id/habitButton") < layout.indexOf("@+id/favoriteList"))
     }
