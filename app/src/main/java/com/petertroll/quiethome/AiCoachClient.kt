@@ -16,12 +16,7 @@ class AiCoachClient {
             AiProvider.NONE -> error("AI is disabled")
         }
         val prompt = "Give exactly one concrete action in at most 18 words. No praise, shame, diagnosis, or invented facts. Facts: ${facts.take(500)}"
-        val body = JSONObject()
-            .put("model", model)
-            .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
-            .put("max_completion_tokens", 80)
-            .put("temperature", 0.2)
-            .toString()
+        val body = AiRequestFactory.chatCompletionsBody(provider, model, prompt)
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 30_000
@@ -45,5 +40,20 @@ class AiCoachClient {
         } finally {
             connection.disconnect()
         }
+    }
+}
+
+object AiRequestFactory {
+    fun chatCompletionsBody(provider: AiProvider, model: String, prompt: String): String {
+        require(provider != AiProvider.NONE)
+        return JSONObject()
+            .put("model", model)
+            .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
+            .put("max_completion_tokens", 80)
+            .apply {
+                // GPT-5 reasoning models reject non-default temperature values.
+                if (provider == AiProvider.GROQ) put("temperature", 0.2)
+            }
+            .toString()
     }
 }
