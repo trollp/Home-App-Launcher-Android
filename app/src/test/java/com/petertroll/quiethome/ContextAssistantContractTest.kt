@@ -41,9 +41,9 @@ class ContextAssistantContractTest {
 
     @Test fun `release versions are exact`() {
         val gradle = text("build.gradle.kts")
-        assertTrue(gradle.contains("versionCode = 15"))
-        assertTrue(gradle.contains("versionName = \"0.16.0-context-assistant\""))
-        assertTrue(gradle.contains("versionName = \"0.16.0-safe\""))
+        assertTrue(gradle.contains("versionCode = 16"))
+        assertTrue(gradle.contains("versionName = \"0.16.1-context-assistant\""))
+        assertTrue(gradle.contains("versionName = \"0.16.1-bank-safe\""))
     }
 
     @Test fun `launcher routes every assistant entry point to the unified activity`() {

@@ -22,4 +22,16 @@ class AdvancedManifestContractTest {
         assertTrue(manifest.contains("android:name=\".MindfulGateActivity\"\n            android:exported=\"false\""))
         assertTrue(manifest.contains("android:name=\".BlockedActivity\"\n            android:exported=\"false\""))
     }
+
+    @Test fun bankSafeFlavorRemovesSensitiveSpecialAccessComponents() {
+        val safe = File(root, "app/src/safe/AndroidManifest.xml").readText()
+        listOf(
+            "android.permission.PACKAGE_USAGE_STATS",
+            "android.permission.WRITE_SECURE_SETTINGS",
+            ".QuietEnforcementService",
+            ".QuietNotificationListenerService",
+        ).forEach { entry ->
+            assertTrue("$entry must be removed from bank-safe builds", Regex("${Regex.escape(entry)}[\\s\\S]{0,180}tools:node=\\\"remove\\\"").containsMatchIn(safe))
+        }
+    }
 }

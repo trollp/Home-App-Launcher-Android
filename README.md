@@ -18,6 +18,8 @@ Quiet Home is an original, local-first, text-focused Android home launcher desig
 
 Quiet Home has no analytics, ads, account, or cloud backup. Routine, feedback, reflection, launcher, and notification-inbox data remain on the device. Internet access is used only for SMHI weather and user-configured Outlook/BYOK connections. AI calls occur only when the user taps **Test connection** or an explicit **Refine** action; the selected provider receives only the bounded fields disclosed in Settings. Calendar titles and completion recency are not sent.
 
+The **bank-safe** flavor is intended for phones that also run security-sensitive apps. It omits Accessibility, Usage Access, notification-listener, and `WRITE_SECURE_SETTINGS` capabilities. The core launcher, gestures that use ordinary Android APIs, routines, weather, Outlook, and optional AI remain available. Accessibility restrictions, ADB/Developer options, and permission to install unknown apps are not required for normal day-to-day use and can remain off after installation. Compatibility with any particular banking or identity app depends on that app's own security policy and is not guaranteed.
+
 ## Permissions and special access
 
 The core launcher works without special access. Features are enabled progressively from the Permission Center:
