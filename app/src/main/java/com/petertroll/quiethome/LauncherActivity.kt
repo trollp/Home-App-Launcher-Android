@@ -46,9 +46,8 @@ import com.petertroll.quiethome.domain.AppEntry
 import com.petertroll.quiethome.domain.AppFilter
 import com.petertroll.quiethome.domain.AppSort
 import com.petertroll.quiethome.domain.AppTheme
-import com.petertroll.quiethome.domain.AiProvider
-import com.petertroll.quiethome.domain.CoachAction
-import com.petertroll.quiethome.domain.CoachContext
+import com.petertroll.quiethome.domain.ActivityKind
+import com.petertroll.quiethome.domain.PlannerPlan
 import com.petertroll.quiethome.domain.DisplayApp
 import com.petertroll.quiethome.domain.GestureNudgePolicy
 import com.petertroll.quiethome.domain.HomeSections
@@ -56,15 +55,10 @@ import com.petertroll.quiethome.domain.HomeDateFormatter
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
 import com.petertroll.quiethome.domain.LauncherGesturePolicy
-import com.petertroll.quiethome.domain.LocalBriefingComposer
-import com.petertroll.quiethome.domain.MicroCoachPolicy
-import com.petertroll.quiethome.domain.RoutinePolicy
-import com.petertroll.quiethome.domain.UpcomingEvent
 import com.petertroll.quiethome.domain.WeatherSnapshot
 import com.google.android.material.snackbar.Snackbar
 import java.text.DateFormat
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.Date
 import java.util.concurrent.Executors
 
@@ -73,7 +67,6 @@ class LauncherActivity : AppCompatActivity() {
     private lateinit var store: PreferencesStore
     private lateinit var repository: AndroidAppRepository
     private lateinit var weatherRepository: WeatherRepository
-    private lateinit var credentialStore: CredentialStore
     private lateinit var appAdapter: AppListAdapter
     private lateinit var gestureDetector: GestureDetector
     private var pendingGestureAction: LauncherGestureAction? = null
@@ -91,9 +84,9 @@ class LauncherActivity : AppCompatActivity() {
     private var receiverRegistered = false
 
     private var weatherSnapshot: WeatherSnapshot? = null
-    private var upcomingEvent: UpcomingEvent? = null
     private var started = false
-    private var proactiveShownThisSession = false
+    private lateinit var calendarObserver: CalendarChangeObserver
+    private var lastPlannerTrigger = 0L
     private val catalogExecutor = Executors.newSingleThreadExecutor()
     private val contextExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -115,6 +108,12 @@ class LauncherActivity : AppCompatActivity() {
             mainHandler.postDelayed(this, CLOCK_REFRESH_MS)
         }
     }
+    private val plannerTick = object : Runnable {
+        override fun run() {
+            triggerPlanner()
+            mainHandler.postDelayed(this, PLANNER_REFRESH_MS)
+        }
+    }
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             refreshCatalog()
@@ -134,7 +133,7 @@ class LauncherActivity : AppCompatActivity() {
         binding.clock.contentDescription = getString(R.string.open_clock)
         repository = AndroidAppRepository(this)
         weatherRepository = WeatherRepository(this)
-        credentialStore = CredentialStore(this)
+        calendarObserver = CalendarChangeObserver(this) { triggerPlanner(calendarBypass = true) }
         appAdapter = AppListAdapter()
         binding.appList.adapter = appAdapter
 
@@ -147,8 +146,8 @@ class LauncherActivity : AppCompatActivity() {
             true
         }
         binding.weatherText.setOnClickListener { showWeatherDetails() }
-        binding.coachButton.setOnClickListener { startActivity(Intent(this, AssistantActivity::class.java)) }
-        binding.briefingButton.setOnClickListener { openAssistantBriefing() }
+        binding.plannerHeadline.setOnClickListener { startActivity(Intent(this, AssistantActivity::class.java)) }
+        binding.plannerDigest.setOnClickListener { startActivity(Intent(this, AssistantActivity::class.java)) }
         binding.phoneButton.setOnClickListener { openPhone() }
         binding.cameraButton.setOnClickListener { openCamera() }
         binding.torchButton.setOnClickListener { requestOrToggleTorch() }
@@ -176,7 +175,9 @@ class LauncherActivity : AppCompatActivity() {
         registerPackageReceiver()
         refreshCatalog()
         refreshWeather()
-        refreshCalendar()
+        calendarObserver.start()
+        renderPlan(PlanStore(this).load()?.first ?: PlannerCoordinator(this).immediateFallback())
+        triggerPlanner()
     }
 
     override fun onResume() {
@@ -186,10 +187,14 @@ class LauncherActivity : AppCompatActivity() {
         renderHome()
         mainHandler.removeCallbacks(clockTick)
         clockTick.run()
+        mainHandler.removeCallbacks(plannerTick)
+        mainHandler.postDelayed(plannerTick, PLANNER_REFRESH_MS)
+        PlannerCoordinator.schedule(this)
     }
 
     override fun onPause() {
         mainHandler.removeCallbacks(clockTick)
+        mainHandler.removeCallbacks(plannerTick)
         super.onPause()
     }
 
@@ -202,6 +207,7 @@ class LauncherActivity : AppCompatActivity() {
             unregisterReceiver(packageReceiver)
             receiverRegistered = false
         }
+        calendarObserver.stop()
         super.onStop()
     }
 
@@ -304,7 +310,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private fun renderHome() {
         renderHabit()
-        renderCoach()
+        PlanStore(this).load()?.first?.let(::renderPlan)
         binding.favoriteList.removeAllViews()
         val favorites = HomeSections.from(catalog()).favorites
         if (!catalogLoaded) {
@@ -522,7 +528,7 @@ class LauncherActivity : AppCompatActivity() {
     private fun renderHabit() {
         if (preferences.routines.isEmpty()) {
             binding.habitButton.text = "Add priorities"
-            binding.habitButton.contentDescription = "Add up to five routines or priorities"
+            binding.habitButton.contentDescription = "Add up to 15 routines or priorities"
             binding.habitButton.isSelected = false
             return
         }
@@ -551,7 +557,7 @@ class LauncherActivity : AppCompatActivity() {
                 if (refreshed != null) {
                     weatherSnapshot = refreshed
                     renderWeather(refreshed)
-                    renderCoach()
+                    triggerPlanner()
                 } else if (weatherSnapshot == null) {
                     binding.weatherText.setText(R.string.weather_unavailable)
                 }
@@ -559,20 +565,32 @@ class LauncherActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshCalendar() {
-        val clientId = preferences.outlookClientId
-        if (clientId.isBlank() || !credentialStore.hasOutlookConnection()) {
-            upcomingEvent = null
-            return
-        }
+    private fun triggerPlanner(calendarBypass: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!calendarBypass && now - lastPlannerTrigger < 5 * 60_000L) return
+        lastPlannerTrigger = now
         contextExecutor.execute {
-            val event = runCatching { OutlookCalendarClient(this).nextEvent(clientId) }.getOrNull()
-            mainHandler.post {
-                if (!started || isDestroyed) return@post
-                upcomingEvent = event
-                renderCoach()
-            }
+            val plan = PlannerCoordinator(this).refresh(calendarBypass)
+            mainHandler.post { if (started && !isDestroyed) renderPlan(plan) }
         }
+    }
+
+    private fun renderPlan(plan: PlannerPlan) {
+        if (!::binding.isInitialized) return
+        binding.plannerHeadline.text = plan.headline
+        binding.plannerNextItems.removeAllViews()
+        plan.next.take(3).forEach { item ->
+            binding.plannerNextItems.addView(labelView(listOfNotNull(item.time, item.text).joinToString(" · "), true).apply {
+                setOnClickListener {
+                    ActivityLogStore(this@LauncherActivity).append(ActivityKind.PLAN_SHOWN, item.refId)
+                    startActivity(Intent(this@LauncherActivity, AssistantActivity::class.java))
+                }
+            })
+        }
+        val timestamp = PlanStore(this).load()?.second ?: System.currentTimeMillis()
+        val age = ((System.currentTimeMillis() - timestamp).coerceAtLeast(0) / 60_000)
+        binding.plannerUpdated.text = if (age < 1) "Updated just now" else "Updated $age min ago"
+        binding.plannerDigest.text = plan.digest.firstOrNull()?.text ?: "Digest · no additional items"
     }
 
     private fun renderWeather(snapshot: WeatherSnapshot) {
@@ -590,118 +608,6 @@ class LauncherActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(snapshot.headline())
             .setMessage(getString(R.string.weather_details, snapshot.detail(), getString(R.string.smhi_attribution)))
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
-    }
-
-    private fun currentCoach(): CoachAction {
-        val today = LocalDate.now().toEpochDay()
-        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
-        val stockholm = ZoneId.of("Europe/Stockholm")
-        val now = java.time.ZonedDateTime.now(stockholm)
-        val rain = weatherSnapshot?.rainStartsAt?.atZone(stockholm)
-        val rainHour = rain?.takeIf { it.toLocalDate() == now.toLocalDate() }?.hour
-        return MicroCoachPolicy.choose(CoachContext(
-            now.hour,
-            insight.completedThisWeek,
-            insight.target,
-            rainHour,
-            upcomingEvent?.minutesUntil,
-            preferences.habitName,
-        ))
-    }
-
-    private fun renderCoach() {
-        if (!::binding.isInitialized) return
-        val stockholm = ZoneId.of("Europe/Stockholm")
-        val now = java.time.ZonedDateTime.now(stockholm)
-        val day = now.toLocalDate().toEpochDay()
-        val deferred = preferences.coachDeferredEpochDay == day || System.currentTimeMillis() < preferences.laterUntilEpochMillis
-        val rainTiming = weatherSnapshot?.rainStartsAt?.atZone(stockholm)?.let { "Rain near ${it.hour}:00" }
-        val assistantContext = com.petertroll.quiethome.domain.AssistantContext(
-            epochDay = day,
-            localHour = now.hour,
-            dayPhase = com.petertroll.quiethome.domain.AssistantContext.phase(now.hour),
-            weatherSummary = weatherSnapshot?.headline(),
-            weatherTiming = rainTiming,
-            nextEventMinutes = upcomingEvent?.minutesUntil,
-            capacity = preferences.capacity,
-            routines = preferences.routines.filter { it.enabled },
-            feedback = emptyList(),
-            suppressedRoutineIds = preferences.suppressedRoutineDays.filterValues { it == day }.keys,
-            learningEnabled = preferences.learningEnabled,
-        )
-        val signature = com.petertroll.quiethome.domain.ProactivityPolicy.contextSignature(assistantContext)
-        val eligible = com.petertroll.quiethome.domain.ProactivityPolicy.shouldShowInSession(
-            preferences.proactivity, proactiveShownThisSession, day, preferences.lastProactiveEpochDay, signature,
-            preferences.lastProactiveContextSignature,
-        )
-        binding.coachButton.isVisible = !deferred && eligible && preferences.routines.any { it.enabled }
-        if (binding.coachButton.isVisible && !proactiveShownThisSession) {
-            binding.coachButton.text = "Open today’s context suggestion"
-            proactiveShownThisSession = true
-            preferences = preferences.copy(
-                lastProactiveEpochDay = if (preferences.proactivity == com.petertroll.quiethome.domain.Proactivity.ONCE_DAILY) day else preferences.lastProactiveEpochDay,
-                lastProactiveContextSignature = if (preferences.proactivity == com.petertroll.quiethome.domain.Proactivity.CONTEXT_CHANGES) signature else preferences.lastProactiveContextSignature,
-            )
-            store.save(preferences)
-        }
-    }
-
-    private fun showCoachDialog(action: CoachAction) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.coach_title)
-            .setMessage("${action.text}\n\n${getString(R.string.coach_reason)}: ${action.reason}")
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(R.string.later) { _, _ ->
-                update(preferences.copy(coachDeferredEpochDay = LocalDate.now().toEpochDay()))
-            }
-            .setNeutralButton(R.string.ask_ai) { _, _ -> requestAiSuggestion(action) }
-            .show()
-    }
-
-    private fun requestAiSuggestion(local: CoachAction) {
-        val prefs = preferences
-        val key = credentialStore.apiKey(prefs.aiProvider)
-        if (prefs.aiProvider == AiProvider.NONE || key == null) {
-            showMessage(R.string.ai_unavailable)
-            return
-        }
-        snackbar(R.string.ai_thinking).show()
-        val insight = RoutinePolicy.evaluate(prefs.routineState(), LocalDate.now().toEpochDay())
-        val facts = "Routine: ${prefs.habitName}. This week: ${insight.completedThisWeek}/${insight.target}. " +
-            "Weather: ${weatherSnapshot?.headline() ?: "unavailable"}. Local action: ${local.text}"
-        contextExecutor.execute {
-            val result = runCatching { AiCoachClient().suggest(prefs.aiProvider, key, prefs.aiModel, facts) }
-            mainHandler.post {
-                if (!started || isDestroyed) return@post
-                result.onSuccess { suggestion ->
-                    AlertDialog.Builder(this)
-                        .setTitle(R.string.ai_suggestion_title)
-                        .setMessage(suggestion)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }.onFailure { snackbar(getString(R.string.ai_test_failed, it.message ?: "error")).show() }
-            }
-        }
-    }
-
-    private fun openAssistantBriefing() {
-        startActivity(Intent(this, AssistantActivity::class.java).putExtra(AssistantActivity.EXTRA_OPEN_BRIEFING, true))
-    }
-
-    private fun showBriefing() {
-        val today = LocalDate.now().toEpochDay()
-        val insight = RoutinePolicy.evaluate(preferences.routineState(), today)
-        val items = LocalBriefingComposer.compose(
-            weather = weatherSnapshot?.let { "Stockholm: ${it.headline()}. ${it.detail()}." },
-            nextEvent = upcomingEvent?.let { "Next: ${it.title} in ${it.minutesUntil} minutes." },
-            routine = "${insight.momentum}. ${insight.message}",
-            coach = currentCoach().text,
-        )
-        AlertDialog.Builder(this)
-            .setTitle(R.string.briefing_title)
-            .setMessage(items.joinToString("\n\n").ifBlank { getString(R.string.briefing_empty) })
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
@@ -1054,6 +960,7 @@ class LauncherActivity : AppCompatActivity() {
 
     private companion object {
         const val CLOCK_REFRESH_MS = 30_000L
+        const val PLANNER_REFRESH_MS = 30 * 60_000L
         const val GESTURE_NUDGE_RESET_MS = 90L
         const val MIN_ROW_HEIGHT_DP = 56
         const val STATE_DRAWER = "drawer"

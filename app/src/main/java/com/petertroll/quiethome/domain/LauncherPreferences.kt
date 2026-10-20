@@ -3,7 +3,7 @@ package com.petertroll.quiethome.domain
 enum class AppTheme { SYSTEM, LIGHT, DARK }
 enum class AppSort { ALPHABETICAL, MOST_USED, RECENT }
 enum class AppFilter { ALL, FAVORITES, OTHERS }
-enum class AiProvider { NONE, OPENAI, GROQ }
+
 
 data class LauncherPreferences(
     val favoritePackages: Set<String> = emptySet(),
@@ -18,21 +18,12 @@ data class LauncherPreferences(
     val habitDoneEpochDay: Long = -1L,
     val routineCompletedEpochDays: Set<Long> = emptySet(),
     val routineWeeklyTarget: Int = 3,
-    val coachDeferredEpochDay: Long = -1L,
-    val aiProvider: AiProvider = AiProvider.NONE,
-    val aiModel: String = "gpt-5-nano",
-    val outlookClientId: String = "",
+    val openAiEnabled: Boolean = false,
     val routines: List<Routine> = emptyList(),
-    val capacity: Capacity = Capacity.NORMAL,
-    val feedback: List<FeedbackEvent> = emptyList(),
-    val reflections: List<ReflectionEvent> = emptyList(),
-    val learningEnabled: Boolean = true,
-    val proactivity: Proactivity = Proactivity.ONCE_DAILY,
-    val suppressedRoutineDays: Map<String, Long> = emptyMap(),
-    val laterUntilEpochMillis: Long = 0L,
-    val lastProactiveEpochDay: Long = -1L,
-    val lastProactiveContextSignature: String = "",
-    val tomorrowProposal: TomorrowProposal? = null,
+    val plannerProfile: PlannerProfile = PlannerProfile(),
+    val localTasks: List<LocalTask> = emptyList(),
+    /** Opaque one-release bridge so legacy feedback/reflections are not discarded before UI migration. */
+    val legacyPlannerHistory: String? = null,
 ) {
     fun isFavorite(packageName: String) = packageName in favoritePackages
     fun isHidden(packageName: String) = packageName in hiddenPackages

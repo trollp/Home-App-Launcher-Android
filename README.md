@@ -1,51 +1,49 @@
 # Quiet Home
 
-Quiet Home is an original, local-first, text-focused Android home launcher designed to make the phone calmer without making it unusable.
+Quiet Home is a local-first, text-focused Android home launcher. It keeps the existing launcher, app rules, grayscale experiment, usage tools, and a Phase 1 day planner in one deliberately quiet interface.
 
-## Features
+## Phase 1 planner
 
-- Text-first Home screen with clock, date, favorites, search, and an alphabetical app list.
-- Hide, restore, rename, favorite, inspect, and uninstall app shortcuts.
-- System, light, and dark themes with adjustable text size.
-- Optional intentional-opening delay and session reminder per app.
-- Optional daily limits, recurring schedules, focus periods, and deliberate grace overrides.
-- Seven-day usage dashboard using Android Usage Access estimates.
-- Optional local notification batching/silencing with an on-device inbox.
-- Optional Accessibility enforcement for configured limits when apps are opened outside Quiet Home.
-- Experimental per-app grayscale for sideloaded builds when `WRITE_SECURE_SETTINGS` is explicitly granted with ADB.
-- Local-first context assistant for up to five user-defined routines or priorities, with capacity, explainable one-action suggestions, morning briefing, evening reflection, and evidence-gated weekly review.
-- Optional Stockholm SMHI weather, read-only Outlook next-event timing, and explicit BYOK AI wording refinement. Calendar titles remain local; executable actions remain constrained to supplied local candidates, while dedicated bounded protocols handle briefing, reflection, and weekly-review wording.
+The planner builds a bounded view of the next 24 hours from Android's Calendar Provider, local tasks, profile constraints and goals, cached Stockholm weather, optional Usage Access summaries, and a 14-day local activity log. A deterministic on-device fallback is always available. The planner does not connect directly to any calendar vendor: calendars must already be synced into Android's Calendar Provider by an account or calendar app.
 
-Quiet Home has no analytics, ads, account, or cloud backup. Routine, feedback, reflection, launcher, and notification-inbox data remain on the device. Internet access is used only for SMHI weather and user-configured Outlook/BYOK connections. AI calls occur only when the user taps **Test connection** or an explicit **Refine** action; the selected provider receives only the bounded fields disclosed in Settings. Calendar titles and completion recency are not sent.
+Cloud planning is **off by default**. Adding an API key does not enable it, and upgrades never infer consent from an old key or provider setting. If the user separately enables **Send planner snapshot to OpenAI**, Quiet Home sends the disclosed snapshot to OpenAI. That snapshot can include calendar titles and locations, task titles, profile constraints/goals, free slots, usage summaries, and recent planner activity. Disable the toggle or delete the key to stop cloud calls. Keys are encrypted with Android Keystore, excluded from backup, and should be dedicated, revocable, and spending-limited.
 
-The **bank-safe** flavor is intended for phones that also run security-sensitive apps. It omits Accessibility, Usage Access, notification-listener, and `WRITE_SECURE_SETTINGS` capabilities. The core launcher, gestures that use ordinary Android APIs, routines, weather, Outlook, and optional AI remain available. Accessibility restrictions, ADB/Developer options, and permission to install unknown apps are not required for normal day-to-day use and can remain off after installation. Compatibility with any particular banking or identity app depends on that app's own security policy and is not guaranteed.
+Model output is untrusted. Quiet Home validates reference IDs, times, installed/non-hidden app packages, free calendar slots, text and action arguments. Maps URLs are constructed locally from the current event location. Mutations require confirmation where appropriate and are checked again against current local state.
 
-## Permissions and special access
+Quiet Home has no analytics, ads, app account, or cloud backup. Local fallback, tasks, profile, activity and rules work without cloud planning. SMHI weather is the other network data source.
 
-The core launcher works without special access. Features are enabled progressively from the Permission Center:
+See [docs/planner.md](docs/planner.md) for architecture, data flow, limits, and device-verification status.
 
-- **Default Home:** lets Android use Quiet Home as the launcher.
-- **Usage Access:** enables usage estimates and daily-limit decisions.
-- **Notification Access:** enables configured notification batching/silencing. All apps default to Allow.
-- **Accessibility:** optionally enforces configured rules for apps opened through Recents or another surface. Safety and recovery packages are exempted dynamically and enforcement fails open.
-- **Post notifications:** enables approximate session reminders and rate-limited status notices.
-- **ADB secure-settings grant:** optional, experimental, and only for grayscale. See [`docs/experimental-grayscale.md`](docs/experimental-grayscale.md).
+## Flavors and bank-safe scope
 
-Limits, reminders, and usage figures depend on Android/OEM scheduling and UsageStats behavior and are estimates rather than hard security controls. The blocked screen always provides a recovery path.
+- `full` includes the optional Accessibility enforcement, Usage Access, notification listener and experimental secure-settings grayscale capability.
+- `safe` omits those elevated capabilities while retaining the launcher and planner.
 
-## Build
+“Bank-safe” describes reduced permissions, not a security certification. Banking or identity apps may apply their own unsupported-device policies. Normal launcher/planner use does not require Developer options, Accessibility, or permission to install unknown apps.
+
+## Permissions
+
+The core launcher works without special access. Optional features use:
+
+- **Default Home** for launcher selection.
+- **Read calendar** for Android Calendar Provider events; planner shows permission/no-synced-calendar states rather than inventing freshness.
+- **Post notifications / exact alarms** for meeting-prep reminders. Approximate alarms are used when exact-alarm access is unavailable.
+- **Usage Access**, **Notification Access**, and **Accessibility** only in capabilities that expose them.
+- **Camera** only for the local torch button.
+- **ADB secure-settings grant** only for experimental grayscale; see [docs/experimental-grayscale.md](docs/experimental-grayscale.md).
+
+## Build and focused tests
 
 ```bash
 export ANDROID_HOME="$HOME/Android/Sdk"
-./gradlew testDebugUnitTest lintDebug assembleRelease
+./gradlew testSafeDebugUnitTest testFullDebugUnitTest
+./gradlew assembleSafeDebug assembleFullDebug
 ```
 
-The project targets Android 14/API 34 and supports Android 8.0/API 26 and later.
+Release checks can additionally run:
 
-## Verification status for 0.9.0-beta1
+```bash
+./gradlew lintSafeRelease lintFullRelease assembleSafeRelease assembleFullRelease
+```
 
-- 66 local JVM tests pass.
-- Android lint reports no issues.
-- Debug and release APK assembly pass.
-- Release artifact metadata, alignment, signature, archive integrity, and checksum are verified before delivery.
-- No device was connected in the build environment, so selecting it as Home and exercising special-access services still require real-device beta testing.
+The project targets Android 14/API 34 and supports Android 8/API 26 and later. Real-device calendar providers, work-profile/MDM calendar visibility, reminder delivery, exact alarms, alarm-clock handlers, DND policy access, and launcher selection remain hardware/OEM-dependent and must be verified on target devices.

@@ -11,8 +11,8 @@ class HomeContextContractTest {
     private val manifest = File(root, "app/src/main/AndroidManifest.xml").readText()
     private val strings = File(root, "app/src/main/res/values/strings.xml").readText()
 
-    @Test fun `home has compact date weather briefing and weekly routine above favorites`() {
-        val ids = listOf("dateWeatherRow", "date", "weatherText", "coachButton", "habitButton", "briefingButton", "favoriteList")
+    @Test fun `home has compact date weather planner and priorities above favorites`() {
+        val ids = listOf("dateWeatherRow", "date", "weatherText", "habitButton", "plannerHeadline", "plannerNextItems", "plannerUpdated", "plannerDigest", "favoriteList")
         ids.forEach { assertTrue("missing $it", layout.contains("@+id/$it")) }
         assertFalse("battery duplicates the system status bar", layout.contains("@+id/batteryText"))
         assertTrue("top padding should not create an empty band", layout.contains("android:paddingTop=\"0dp\""))

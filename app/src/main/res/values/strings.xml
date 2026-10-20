@@ -86,6 +86,7 @@
     <string name="permissions_intro">Everything is optional. Quiet Home remains usable if you choose Not now. Grant only features you want.</string>
     <string name="default_home_explanation">Default Home: lets Quiet Home appear when you press Home.</string>
     <string name="usage_explanation">Usage access: measures today’s app time for daily limits. Without it, limits fail open.</string>
+    <string name="calendar_permission_explanation">Read calendar: lets the planner read the next 24 hours from calendars synced into Android. Quiet Home never writes or deletes events.</string>
     <string name="notification_access_explanation">Notification access: enables your local allow, batch, and silence choices. Critical notifications are left alone.</string>
     <string name="notification_permission_explanation">Notification permission: allows approximate local session-end reminders and rate-limited warnings when usage limits cannot be enforced.</string>
     <string name="accessibility_explanation">Accessibility: enables double-tap screen lock and reliable notification gestures. It can also provide optional external-app enforcement; rules fail open on errors.</string>
@@ -181,10 +182,7 @@
     <string name="coach_reason">Why this appeared</string>
     <string name="later">Later</string>
     <string name="change">Change</string>
-    <string name="ask_ai">Ask AI</string>
-    <string name="ai_thinking">Asking the selected provider…</string>
-    <string name="ai_unavailable">AI is not configured. The local suggestion remains available.</string>
-    <string name="ai_suggestion_title">AI suggestion</string>
+
     <string name="open_briefing">Briefing · useful things</string>
     <string name="briefing_title">Today</string>
     <string name="briefing_empty">Nothing unusual today.</string>
@@ -201,35 +199,7 @@
     <string name="clear_weather_cache">Clear weather cache</string>
     <string name="weather_cache_cleared">Weather cache cleared.</string>
     <string name="smhi_attribution">Weather forecast data: SMHI. Quiet Home processes it into local summaries.</string>
-    <string name="outlook_not_configured">Outlook is not connected. Add a Microsoft Entra public-client application ID to enable sign-in.</string>
-    <string name="outlook_ready_to_connect">Microsoft app registration saved. Outlook is not connected.</string>
-    <string name="outlook_connected">Outlook calendar is connected.</string>
-    <string name="outlook_connect">Connect Outlook</string>
-    <string name="outlook_disconnect">Disconnect Outlook</string>
-    <string name="outlook_connecting">Completing Microsoft sign-in…</string>
-    <string name="outlook_connected_success">Outlook calendar connected.</string>
-    <string name="outlook_connect_failed">Outlook connection failed: %1$s</string>
-    <string name="outlook_client_id_needed">Add the Microsoft client ID first.</string>
-    <string name="outlook_registration_saved">Microsoft client ID saved.</string>
-    <string name="outlook_app_registration">Microsoft app registration</string>
-    <string name="microsoft_client_id">Microsoft Entra client ID</string>
-    <string name="outlook_registration_explanation">Enter the public-client application ID. No client secret belongs in this app. Register Android package com.petertroll.quiethome with signature hash 0qyOYJyiO5ZLlV7HwxfLMQBxMuQ=.</string>
-    <string name="ai_status_format">Provider: %1$s · %2$s</string>
-    <string name="key_saved">key saved securely</string>
-    <string name="no_key_saved">no key saved</string>
-    <string name="choose_ai_provider">Choose AI provider</string>
-    <string name="ai_off">Off · local coach only</string>
-    <string name="enter_api_key">Enter API key</string>
-    <string name="api_key_hint">Dedicated low-limit API key</string>
-    <string name="api_key_security_note">The key is encrypted with Android Keystore and excluded from backup. A key stored on a phone can still be exposed if the device is compromised.</string>
-    <string name="test_api_key">Test connection</string>
-    <string name="delete_api_key">Delete API key</string>
-    <string name="configure_ai_first">Choose a provider and save a key first.</string>
-    <string name="testing_connection">Testing connection…</string>
-    <string name="ai_test_success">Connection works.</string>
-    <string name="ai_test_failed">Connection failed: %1$s</string>
-    <string name="privacy_data_flow">AI is off by default and is contacted only when you tap Test connection or an explicit Refine action. Depending on that action, it receives bounded local wording and facts: Stockholm-local day phase and hour; Stockholm weather summary and timing; minutes until the next event (never its title); enabled routine names, actions, weekly targets and weekly progress; your selected capacity; bounded recent feedback by routine and day phase; candidate IDs, titles, reasons, durations and categories; or the complete bounded briefing, reflection proposal, or weekly observations being refined. It does not receive calendar titles, completion recency, app usage, notifications, location, contacts, or credentials. Local commands never leave the supplied candidates.</string>
-    <string name="byok_risk">Use a dedicated, revocable provider key with a low spending limit. Keys are never included in source, logs, or backups.</string>
+
     <string name="delete_routine_history">Delete routine history</string>
     <string name="routine_history_deleted">Routine history deleted.</string>
     <string name="appearance_from_launcher_note">Theme, text size, hidden apps, permissions, and focus tools remain available from the launcher’s Settings menu.</string>

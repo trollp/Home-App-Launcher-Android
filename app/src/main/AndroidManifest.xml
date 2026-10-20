@@ -5,6 +5,8 @@
     <!-- User grants this app-op from Settings; it is optional and daily limits fail open. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <!-- Requested at runtime only if the user taps the local torch control. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Normal permission used by the launcher's top-edge notification-shade gesture. -->
@@ -45,20 +47,7 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:launchMode="singleTop" />
-        <activity
-            android:name=".OutlookOAuthCallbackActivity"
-            android:exported="true"
-            android:noHistory="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="msauth"
-                    android:host="com.petertroll.quiethome"
-                    android:path="/0qyOYJyiO5ZLlV7HwxfLMQBxMuQ=" />
-            </intent-filter>
-        </activity>
+
         <activity
             android:name=".MindfulGateActivity"
             android:exported="false" />

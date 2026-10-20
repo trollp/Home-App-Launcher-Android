@@ -85,27 +85,44 @@
                     android:textSize="16sp" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/coachButton"
-                style="?attr/materialButtonOutlinedStyle"
+            <TextView
+                android:id="@+id/plannerHeadline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="start|center_vertical"
-                android:minHeight="56dp"
-                android:textAllCaps="false"
-                android:textSize="16sp" />
+                android:minHeight="48dp"
+                android:text="Your plan is ready"
+                android:textSize="21sp"
+                android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/briefingButton"
-                style="?attr/materialButtonOutlinedStyle"
+            <LinearLayout
+                android:id="@+id/plannerNextItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/plannerUpdated"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/plannerDigest"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:minHeight="48dp"
-                android:text="@string/open_briefing"
-                android:textAllCaps="false"
-                android:textSize="16sp" />
+                android:text="Digest · no additional items"
+                android:textSize="14sp" />
 
             <LinearLayout
                 android:id="@+id/favoriteList"

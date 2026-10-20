@@ -43,16 +43,13 @@ class ManifestContractTest {
         assertFalse(manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
     }
 
-    @Test fun `only minimal callback activity is exported for Outlook redirect`() {
+    @Test fun `planner screens are private and no OAuth callback is exported`() {
         val activities = document.getElementsByTagName("activity").elements()
         val settings = activities.single { it.androidAttribute("name") == ".SettingsActivity" }
-        val callback = activities.single { it.androidAttribute("name") == ".OutlookOAuthCallbackActivity" }
+        val assistant = activities.single { it.androidAttribute("name") == ".AssistantActivity" }
         assertEquals("false", settings.androidAttribute("exported"))
-        assertEquals("true", callback.androidAttribute("exported"))
-        val data = callback.getElementsByTagName("data").elements().single()
-        assertEquals("msauth", data.androidAttribute("scheme"))
-        assertEquals("com.petertroll.quiethome", data.androidAttribute("host"))
-        assertEquals("/0qyOYJyiO5ZLlV7HwxfLMQBxMuQ=", data.androidAttribute("path"))
+        assertEquals("false", assistant.androidAttribute("exported"))
+        assertFalse(manifest.contains("oauth", ignoreCase = true))
     }
 
     private fun org.w3c.dom.NodeList.elements(): List<Element> =

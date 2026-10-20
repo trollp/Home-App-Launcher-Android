@@ -19,10 +19,12 @@ class PermissionCenterActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPermissionCenterBinding
     private lateinit var store: RuleStore
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { render() }
+    private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { render() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); binding = ActivityPermissionCenterBinding.inflate(layoutInflater); setContentView(binding.root); store = RuleStore(this)
         binding.homeButton.setOnClickListener { openHome() }
+        binding.calendarButton.setOnClickListener { calendarPermission.launch(Manifest.permission.READ_CALENDAR) }
         binding.usageButton.setOnClickListener { openSetting(Settings.ACTION_USAGE_ACCESS_SETTINGS) }
         binding.usageDashboardButton.setOnClickListener { startActivity(Intent(this, UsageDashboardActivity::class.java)) }
         binding.notificationAccessButton.setOnClickListener { openSetting(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS) }
@@ -43,6 +45,9 @@ class PermissionCenterActivity : AppCompatActivity() {
 
     private fun render() {
         binding.homeStatus.text = status(R.string.default_home_explanation, isDefaultHome())
+        val calendar = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        binding.calendarStatus.text = status(R.string.calendar_permission_explanation, calendar)
+        binding.calendarButton.isEnabled = !calendar
         binding.usageStatus.text = status(R.string.usage_explanation, UsageAccess(this).isGranted())
         binding.notificationAccessStatus.text = status(R.string.notification_access_explanation, isNotificationListenerEnabled())
         val notifications = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED

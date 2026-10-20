@@ -1,9 +1,20 @@
 package com.petertroll.quiethome.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class PreferencesCodecTest {
+    @Test fun `planner and intent model configuration round trips independently`() {
+        val profile = PlannerProfile(
+            plannerModel = ModelConfig("planner-custom", "medium", 2222),
+            intentModel = ModelConfig("intent-custom", "minimal", 333),
+        )
+        val decoded = PreferencesCodec.decode(PreferencesCodec.encode(LauncherPreferences(plannerProfile = profile)))
+        assertEquals(profile.plannerModel, decoded.plannerProfile.plannerModel)
+        assertEquals(profile.intentModel, decoded.plannerProfile.intentModel)
+    }
+
     @Test fun `corrupt state recovers to defaults`() {
         assertEquals(LauncherPreferences(), PreferencesCodec.decode("{not-json"))
     }
@@ -22,13 +33,20 @@ class PreferencesCodecTest {
             habitDoneEpochDay = 20_000L,
             routineCompletedEpochDays = setOf(19_998L, 20_000L),
             routineWeeklyTarget = 3,
-            coachDeferredEpochDay = 19_999L,
-            aiProvider = AiProvider.GROQ,
-            aiModel = "openai/gpt-oss-20b",
-            outlookClientId = "client-id"
+            openAiEnabled = true,
+            routines = listOf(Routine("gym", "Gym", "Train", "Stretch", 3)),
+            localTasks = listOf(LocalTask("task:1", "Pay bill", null, true, false, 1234L)),
         )
         assertEquals(preferences, PreferencesCodec.decode(PreferencesCodec.encode(preferences)))
         assertEquals(AppTheme.SYSTEM, PreferencesCodec.decode("{\"theme\":\"INVALID\"}").theme)
         assertEquals(1.4f, PreferencesCodec.decode("{\"textScale\":99}").textScale)
+    }
+
+    @Test fun `legacy ai settings never migrate into cloud planner consent`() {
+        val legacy = """{"aiProvider":"OPENAI","openAiEnabled":true,"habitName":"Walk","habitDoneEpochDay":20000}"""
+        val migrated = PreferencesCodec.decode(legacy)
+        assertFalse(migrated.openAiEnabled)
+        assertEquals("Walk", migrated.routines.single().name)
+        assertEquals(setOf(20000L), migrated.routines.single().completedEpochDays)
     }
 }

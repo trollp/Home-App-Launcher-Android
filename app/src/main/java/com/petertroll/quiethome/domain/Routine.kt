@@ -23,7 +23,7 @@ data class Routine(
 }
 
 object RoutineCollection {
-    const val MAX_ROUTINES = 5
+    const val MAX_ROUTINES = 15
     fun sanitize(values: List<Routine>): List<Routine> = values.asSequence()
         .mapIndexed { index, value ->
             val id = value.id.trim().take(40).ifEmpty { "routine-${index + 1}" }

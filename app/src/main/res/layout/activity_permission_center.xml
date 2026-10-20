@@ -5,6 +5,8 @@
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/permissions_intro" />
   <TextView android:id="@+id/homeStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" />
   <Button android:id="@+id/homeButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_home_settings" />
+  <TextView android:id="@+id/calendarStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+  <Button android:id="@+id/calendarButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Allow read-only calendar" />
   <TextView android:id="@+id/usageStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
   <Button android:id="@+id/usageButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_usage_settings" />
   <Button android:id="@+id/usageDashboardButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_usage_dashboard" />
