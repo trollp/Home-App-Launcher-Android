@@ -1,6 +1,6 @@
 # Quiet Home
 
-Quiet Home is a local-first, text-focused Android home launcher. It keeps the existing launcher, app rules, grayscale experiment, usage tools, and a Phase 2 day planner in one deliberately quiet interface.
+Quiet Home is a local-first, text-focused Android home launcher. It keeps the existing launcher, app rules, grayscale experiment, usage tools, and a Phase 3 day planner and intent bar in one deliberately quiet interface.
 
 ## Phase 1 planner
 
@@ -13,6 +13,10 @@ Model output is untrusted. Quiet Home validates reference IDs, times, installed/
 Quiet Home has no analytics, ads, app account, or cloud backup. Local fallback, tasks, profile, activity and rules work without cloud planning. SMHI weather is the other network data source.
 
 See [docs/planner.md](docs/planner.md) for architecture, data flow, limits, and device-verification status.
+
+## Phase 3 intent bar
+
+The persistent home intent bar handles common commands locally: open a uniquely matched visible app, add or complete a local task, set an alarm, mark gym done, open the plan, or open all apps. It never guesses ambiguous app/task matches. Unmatched text can use a separately disabled-by-default OpenAI classifier; planner-cloud consent never enables intent classification. Its explicit, at-most-8-KiB payload excludes health, usage, notifications, activity, account names, goals/constraints, event locations, credentials, and history. See [docs/intent-bar.md](docs/intent-bar.md).
 
 ## Phase 2 Health Connect
 

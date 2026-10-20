@@ -13,8 +13,8 @@ android {
         applicationId = "com.petertroll.quiethome"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
-        versionName = "0.18.0-planner-phase2"
+        versionCode = 18
+        versionName = "0.19.0-planner-phase3"
     }
     productFlavors {
         create("full") {
@@ -22,8 +22,8 @@ android {
         }
         create("safe") {
             dimension = "capabilities"
-            versionCode = 17
-            versionName = "0.18.0-planner-phase2-bank-safe"
+            versionCode = 18
+            versionName = "0.19.0-planner-phase3-bank-safe"
         }
     }
     buildTypes {

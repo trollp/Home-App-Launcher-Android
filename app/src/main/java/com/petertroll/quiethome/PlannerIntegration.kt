@@ -2,6 +2,7 @@ package com.petertroll.quiethome
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -111,7 +112,6 @@ object PlannerRequestFactory {
             action("create_calendar_block", linkedMapOf("start" to arg(20), "end" to arg(20), "title" to arg(60))),
             action("set_alarm", linkedMapOf("time" to arg(5))),
             action("toggle_dnd", linkedMapOf("state" to arg(3))),
-            action("toggle_dnd", linkedMapOf("state" to arg(3), "until" to arg(5))),
             action("mark_gym_done", linkedMapOf()),
         )
         val action = JSONObject().put("anyOf", JSONArray(actions))
@@ -273,11 +273,29 @@ object MeetingPrepScheduler {
 }
 
 class ActionExecutor(private val context: Context) {
-    fun execute(action: PlanAction, snapshot: PlannerSnapshot, confirmed: Boolean = false): Result<Unit> = runCatching {
-        val currentPrefs = PreferencesStore(context).load(); val currentSnapshot = snapshot.copy(tasks = currentPrefs.localTasks.filterNot { it.completed }, allowedAppPackages = currentAllowed(currentPrefs.hiddenPackages))
+    fun execute(action: PlanAction, snapshot: PlannerSnapshot, confirmed: Boolean = false, canExecute: () -> Boolean = { true }): Result<Unit> = runCatching {
+        val currentPrefs = PreferencesStore(context).load()
+        val now = Instant.now()
+        val calendar = CalendarProviderCollector(context).collect(now, currentPrefs.plannerProfile).getOrNull()
+        if (action.tool in setOf("open_event", "open_maps", "create_calendar_block")) require(calendar is CalendarCollection.Available) { "Current calendar state is unavailable" }
+        val currentEvents = (calendar as? CalendarCollection.Available)?.events ?: snapshot.events
+        val currentSnapshot = SnapshotBuilder.build(
+            now, ZoneId.systemDefault(), currentPrefs.plannerProfile, currentEvents, currentPrefs.localTasks,
+            null, emptyList(), emptyList(), currentPrefs.routines,
+            calendarStatus = if (calendar is CalendarCollection.Available) SourceStatus.AVAILABLE else SourceStatus.UNAVAILABLE,
+            allowedAppPackages = currentAllowed(currentPrefs.hiddenPackages),
+        )
         val valid = PlanValidator.validateAction(action, currentSnapshot) ?: error("Action is no longer valid")
+        require(canExecute()) { "Action owner is no longer active" }
         when (valid.tool) {
-            "open_app" -> context.packageManager.getLaunchIntentForPackage(valid.args.getValue("packageName"))?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let(context::startActivity) ?: error("App unavailable")
+            "open_app" -> {
+                val packageName = valid.args.getValue("packageName")
+                val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: error("App unavailable")
+                val info = context.packageManager.resolveActivity(launch, 0)?.activityInfo
+                val label = info?.loadLabel(context.packageManager)?.toString().orEmpty().ifBlank { packageName }
+                if (context is Activity) LaunchRouter.fromLauncher(context, packageName, info?.name, label)
+                else require(LaunchRouter.open(context, packageName, info?.name, label)) { "App unavailable" }
+            }
             "open_event" -> { val event = currentSnapshot.events.first { it.id == valid.args.getValue("eventId") }; context.startActivity(Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, event.providerEventId)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "open_maps" -> { val event = currentSnapshot.events.first { it.id == valid.args.getValue("eventId") }; context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(event.location)}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "complete_task" -> { val id = valid.args.getValue("taskId"); require(currentPrefs.localTasks.any { it.id == id && !it.completed }); PreferencesStore(context).save(currentPrefs.copy(localTasks = LocalTasks.complete(currentPrefs.localTasks, id))) }

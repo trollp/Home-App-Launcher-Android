@@ -93,6 +93,8 @@ class PlannerPhase1Test {
             PlanAction("missing", "open_app", emptyMap(), "Open"),
             PlanAction("extra", "open_maps", mapOf("eventId" to "event:1", "uri" to "intent:bad"), "Map"),
             PlanAction("alarm", "set_alarm", mapOf("time" to "99:00"), "Alarm"),
+            PlanAction("temporary-dnd", "toggle_dnd", mapOf("state" to "on", "until" to "10:00"), "Quiet until ten"),
+            PlanAction("unicode", "add_task", mapOf("title" to "one\u2028two"), "Add"),
             PlanAction("valid", "open_maps", mapOf("eventId" to "event:1"), "Map"),
         ))
         assertEquals(listOf("valid"), PlanValidator.validate(raw, snapshot, profile, now).actions.map { it.id })

@@ -21,11 +21,13 @@ import android.os.Looper
 import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
+import android.text.InputFilter
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -55,6 +57,14 @@ import com.petertroll.quiethome.domain.HomeDateFormatter
 import com.petertroll.quiethome.domain.LauncherPreferences
 import com.petertroll.quiethome.domain.LauncherGestureAction
 import com.petertroll.quiethome.domain.LauncherGesturePolicy
+import com.petertroll.quiethome.domain.IntentApp
+import com.petertroll.quiethome.domain.CloudIntentPreflight
+import com.petertroll.quiethome.domain.IntentInputPolicy
+import com.petertroll.quiethome.domain.IntentParseResult
+import com.petertroll.quiethome.domain.LocalIntentParser
+import com.petertroll.quiethome.domain.LocalTasks
+import com.petertroll.quiethome.domain.PlanAction
+import com.petertroll.quiethome.domain.PlanValidator
 import com.petertroll.quiethome.domain.WeatherSnapshot
 import com.google.android.material.snackbar.Snackbar
 import java.text.DateFormat
@@ -82,6 +92,7 @@ class LauncherActivity : AppCompatActivity() {
     private var torchEnabled = false
     private var catalogGeneration = 0
     private var receiverRegistered = false
+    private val intentRequestGate = ActiveRequestGate()
 
     private var weatherSnapshot: WeatherSnapshot? = null
     private var started = false
@@ -155,6 +166,13 @@ class LauncherActivity : AppCompatActivity() {
         binding.sortButton.setOnClickListener { showSortMenu() }
         binding.settingsButton.setOnClickListener { showSettingsMenu() }
         binding.search.doAfterTextChanged { renderBrowse() }
+        binding.intentInput.filters = arrayOf(InputFilter.LengthFilter(IntentInputPolicy.MAX_CHARS), InputFilter { source, start, end, _, _, _ ->
+            if ((start until end).any { index -> java.lang.Character.isISOControl(source[index]) || source[index] == '\u2028' || source[index] == '\u2029' }) "" else null
+        })
+        binding.intentGo.setOnClickListener { submitIntent() }
+        binding.intentInput.setOnEditorActionListener { _, action, _ ->
+            if (action == EditorInfo.IME_ACTION_GO) { submitIntent(); true } else false
+        }
         installBackHandling()
         installSwipeNavigation()
 
@@ -163,6 +181,7 @@ class LauncherActivity : AppCompatActivity() {
             ?.let { AppFilter.entries.getOrNull(it) }
             ?: AppFilter.ALL
         binding.search.setText(savedInstanceState?.getString(STATE_SEARCH).orEmpty())
+        binding.intentInput.setText(savedInstanceState?.getString(STATE_INTENT).orEmpty())
         if (drawerActive) showDrawer(requestKeyboard = false) else showHome(clearSearch = false)
         maybeShowOnboarding()
     }
@@ -171,6 +190,8 @@ class LauncherActivity : AppCompatActivity() {
         super.onStart()
         preferences = store.load()
         LaunchRouter.ownerStarted(this)
+        intentRequestGate.start()
+        binding.intentGo.isEnabled = true
         started = true
         registerPackageReceiver()
         refreshCatalog()
@@ -201,6 +222,7 @@ class LauncherActivity : AppCompatActivity() {
     override fun onStop() {
         disableTorch()
         LaunchRouter.ownerStopped(this)
+        intentRequestGate.stop()
         started = false
         catalogGeneration++
         if (receiverRegistered) {
@@ -221,6 +243,7 @@ class LauncherActivity : AppCompatActivity() {
         outState.putBoolean(STATE_DRAWER, binding.drawerPanel.isVisible)
         outState.putString(STATE_SEARCH, binding.search.text.toString())
         outState.putInt(STATE_FILTER, appFilter.ordinal)
+        outState.putString(STATE_INTENT, binding.intentInput.text.toString())
         super.onSaveInstanceState(outState)
     }
 
@@ -541,6 +564,142 @@ class LauncherActivity : AppCompatActivity() {
     private fun toggleHabit() {
         update(preferences.toggleHabit(LocalDate.now().toEpochDay()))
     }
+
+    private fun visibleIntentApps(): List<IntentApp> = entries
+        .filterNot { preferences.isHidden(it.packageName) || it.packageName == packageName }
+        .map { IntentApp(preferences.aliasFor(it.packageName) ?: it.label, it.packageName, it.activityName) }
+
+    private fun submitIntent() {
+        val raw = binding.intentInput.text.toString()
+        val clean = IntentInputPolicy.clean(raw)
+        if (clean == null) return setIntentStatus("Use one line of at most 240 characters.")
+        val apps = visibleIntentApps()
+        when (val parsed = LocalIntentParser.parse(clean, apps, preferences.localTasks)) {
+            is IntentParseResult.OpenApp -> {
+                setIntentStatus("Opening ${parsed.app.label}…")
+                logIntent("open_app", parsed.app.packageName)
+                binding.intentInput.setText("")
+                LaunchRouter.fromLauncher(this, parsed.app.packageName, parsed.app.activityName, parsed.app.label)
+            }
+            IntentParseResult.OpenApps -> { logIntent("apps", null); binding.intentInput.setText(""); showDrawer(requestKeyboard = true) }
+            IntentParseResult.OpenPlan -> { logIntent("plan", null); binding.intentInput.setText(""); startActivity(Intent(this, AssistantActivity::class.java)) }
+            is IntentParseResult.Action -> collectAndHandleAction(clean, apps, parsed.value, cloud = false)
+            is IntentParseResult.Ambiguous -> setIntentStatus("More than one ${parsed.kind} matches. Be more specific.")
+            is IntentParseResult.Invalid -> setIntentStatus(parsed.reason)
+            IntentParseResult.Unmatched -> classifyIntent(clean, apps)
+        }
+    }
+
+    private fun classifyIntent(text: String, apps: List<IntentApp>) {
+        preferences = store.load()
+        CloudIntentPreflight.ambiguity(text, apps, preferences.localTasks)?.let {
+            setIntentStatus("More than one ${it.kind} matches. Be more specific.")
+            return
+        }
+        val key = CredentialStore(this).openAiKey()
+        if (!preferences.intentCloudEnabled || key.isNullOrBlank()) {
+            setIntentStatus("Command not recognized. Try: apps, plan, alarm 07:30, task …, done …, or gym done.")
+            return
+        }
+        val token = intentRequestGate.newRequest() ?: return
+        binding.intentGo.isEnabled = false
+        setIntentStatus("Checking command…")
+        contextExecutor.execute {
+            val result = runCatching {
+                val collected = IntentContextCollector(this).collect(text, apps)
+                val proposed = IntentClient().classify(key, collected.classifier, preferences.plannerProfile)
+                proposed?.let { PlanValidator.validateAction(it, collected.validationSnapshot) } to collected
+            }
+            mainHandler.post {
+                if (!intentRequestGate.accepts(token) || !started || isDestroyed) return@post
+                binding.intentGo.isEnabled = true
+                result.fold(
+                    onSuccess = { (action, collected) -> if (action == null) setIntentStatus("No safe action matched.") else handleValidatedAction(action, collected.validationSnapshot) },
+                    onFailure = { setIntentStatus("Could not safely classify that command.") },
+                )
+            }
+        }
+    }
+
+    private fun collectAndHandleAction(text: String, apps: List<IntentApp>, action: PlanAction, cloud: Boolean) {
+        val token = intentRequestGate.newRequest() ?: return
+        binding.intentGo.isEnabled = false
+        setIntentStatus(if (cloud) "Checking command…" else "Checking current state…")
+        contextExecutor.execute {
+            val result = runCatching {
+                val collected = IntentContextCollector(this).collect(text, apps)
+                PlanValidator.validateAction(action, collected.validationSnapshot)?.let { it to collected.validationSnapshot }
+            }
+            mainHandler.post {
+                if (!intentRequestGate.accepts(token) || !started || isDestroyed) return@post
+                binding.intentGo.isEnabled = true
+                val validated = result.getOrNull()
+                if (validated == null) setIntentStatus("That action is no longer available.") else handleValidatedAction(validated.first, validated.second)
+            }
+        }
+    }
+
+    private fun handleValidatedAction(action: PlanAction, snapshot: com.petertroll.quiethome.domain.PlannerSnapshot) {
+        if (action.tool in setOf("add_task", "create_calendar_block", "set_alarm", "toggle_dnd")) {
+            AlertDialog.Builder(this).setTitle(action.label).setMessage(actionSummary(action))
+                .setPositiveButton(R.string.intent_confirm) { _, _ -> executeIntentAction(action, snapshot) }
+                .setNegativeButton(R.string.cancel, null).show()
+        } else executeIntentAction(action, snapshot)
+    }
+
+    private fun executeIntentAction(action: PlanAction, snapshot: com.petertroll.quiethome.domain.PlannerSnapshot) {
+        val token = intentRequestGate.newRequest() ?: return
+        binding.intentGo.isEnabled = false
+        setIntentStatus("Checking current state…")
+        contextExecutor.execute {
+            // Calendar/provider/package revalidation and execution preparation never block the UI thread.
+            if (!intentRequestGate.accepts(token)) return@execute
+            val result = ActionExecutor(this).execute(action, snapshot, confirmed = true) {
+                intentRequestGate.accepts(token) && started && !isDestroyed
+            }
+            mainHandler.post {
+                if (!intentRequestGate.accepts(token) || !started || isDestroyed) return@post
+                binding.intentGo.isEnabled = true
+                finishIntentAction(action, result)
+            }
+        }
+    }
+
+    private fun finishIntentAction(action: PlanAction, result: Result<Unit>) {
+        result.onSuccess {
+            logIntent(action.tool, action.args["taskId"] ?: action.args["eventId"] ?: action.args["packageName"])
+            binding.intentInput.setText("")
+            setIntentStatus("Done · ${action.label}")
+            if (action.tool in setOf("complete_task", "add_task", "mark_gym_done", "create_calendar_block")) {
+                PlanStore(this).invalidate()
+                lastPlannerTrigger = 0
+                triggerPlanner(calendarBypass = true)
+            }
+            when (action.tool) {
+                "complete_task" -> snackbar("Task completed.").setAction(R.string.undo) {
+                    if (ActionExecutor(this).undoCompleteTask(action.args.getValue("taskId"))) { PlanStore(this).invalidate(); lastPlannerTrigger = 0; triggerPlanner(calendarBypass = true) }
+                }.show()
+                "mark_gym_done" -> ActivityLogStore(this).load().firstOrNull { it.kind == ActivityKind.GYM_ACTUAL }?.let { record ->
+                    snackbar("Gym marked done.").setAction(R.string.undo) { if (ActionExecutor(this).undoGym(record.id)) { PlanStore(this).invalidate(); lastPlannerTrigger = 0; triggerPlanner(calendarBypass = true) } }.show()
+                }
+            }
+        }.onFailure { setIntentStatus("Action failed or is no longer valid.") }
+    }
+
+    private fun actionSummary(action: PlanAction): String = when (action.tool) {
+        "add_task" -> "Add task: ${action.args["title"]}"
+        "set_alarm" -> "Open the alarm app for ${action.args["time"]}?"
+        "toggle_dnd" -> "Turn Do Not Disturb ${action.args["state"]}?"
+        "create_calendar_block" -> "Open the calendar to add: ${action.args["title"]}"
+        else -> action.label
+    }
+
+    private fun logIntent(tool: String, ref: String?) {
+        // Never persist command text. Only the fixed tool and an already-known reference are recorded.
+        ActivityLogStore(this).append(ActivityKind.INTENT_COMMAND, listOfNotNull(tool, ref).joinToString("/"))
+    }
+
+    private fun setIntentStatus(value: String) { binding.intentStatus.text = value }
 
 
     private fun refreshWeather() {
@@ -966,5 +1125,6 @@ class LauncherActivity : AppCompatActivity() {
         const val STATE_DRAWER = "drawer"
         const val STATE_SEARCH = "search"
         const val STATE_FILTER = "filter"
+        const val STATE_INTENT = "intent"
     }
 }

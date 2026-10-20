@@ -44,6 +44,7 @@ class PreferencesCodecTest {
             routineCompletedEpochDays = setOf(19_998L, 20_000L),
             routineWeeklyTarget = 3,
             openAiEnabled = true,
+            intentCloudEnabled = true,
             routines = listOf(Routine("gym", "Gym", "Train", "Stretch", 3)),
             localTasks = listOf(LocalTask("task:1", "Pay bill", null, true, false, 1234L)),
         )
@@ -56,7 +57,14 @@ class PreferencesCodecTest {
         val legacy = """{"aiProvider":"OPENAI","openAiEnabled":true,"habitName":"Walk","habitDoneEpochDay":20000}"""
         val migrated = PreferencesCodec.decode(legacy)
         assertFalse(migrated.openAiEnabled)
+        assertFalse(migrated.intentCloudEnabled)
         assertEquals("Walk", migrated.routines.single().name)
         assertEquals(setOf(20000L), migrated.routines.single().completedEpochDays)
+    }
+
+    @Test fun `planner consent never implies intent classifier consent`() {
+        val decoded = PreferencesCodec.decode("""{"plannerCloudOptIn":true}""")
+        assertEquals(true, decoded.openAiEnabled)
+        assertFalse(decoded.intentCloudEnabled)
     }
 }

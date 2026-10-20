@@ -67,8 +67,10 @@ class SettingsActivity : AppCompatActivity() {
         section("OpenAI")
         text("Cloud planning is off by default. If you explicitly enable it, the bounded snapshot—including calendar titles, locations, local tasks, profile, usage summaries, bounded Health Connect summaries, and recent planner activity—is sent to OpenAI. Raw health records are never included. Local fallback works without a key or consent.")
         action("Send planner snapshot to OpenAI · ${if (prefs.openAiEnabled) "ON" else "OFF"}") { store.save(prefs.copy(openAiEnabled = !prefs.openAiEnabled)); PlanStore(this).invalidate(); render() }
+        text("Intent classification has separate consent and sends only the command plus bounded visible app, active task, current-event, free-slot, time-zone, current-time, and tool-name fields. It excludes health, usage, notifications, activity, accounts, goals, constraints, locations, credentials, and history.")
+        action("Send unmatched intent commands to OpenAI · ${if (prefs.intentCloudEnabled) "ON" else "OFF"}") { store.save(prefs.copy(intentCloudEnabled = !prefs.intentCloudEnabled)); render() }
         action(if (credentials.hasOpenAiKey()) "Replace OpenAI key" else "Add OpenAI key") { enterKey() }
-        if (credentials.hasOpenAiKey()) action("Delete OpenAI key") { credentials.clearOpenAiKey(); store.save(prefs.copy(openAiEnabled = false)); render() }
+        if (credentials.hasOpenAiKey()) action("Delete OpenAI key") { credentials.clearOpenAiKey(); store.save(prefs.copy(openAiEnabled = false, intentCloudEnabled = false)); PlanStore(this).invalidate(); render() }
         section("Privacy")
         action("Clear 14-day planner activity") { getSharedPreferences("planner_activity", MODE_PRIVATE).edit().clear().apply(); message("Planner activity cleared.") }
         action("Delete routine history") { store.save(prefs.copy(routines = prefs.routines.map { it.copy(completedEpochDays = emptySet()) }, routineCompletedEpochDays = emptySet(), habitDoneEpochDay = -1)); message("Routine history deleted.") }

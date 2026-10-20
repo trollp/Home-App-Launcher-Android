@@ -3,6 +3,9 @@
     <string name="no_favorites">No favorites yet.</string>
     <string name="all_apps">All apps</string>
     <string name="open_apps">Open all apps</string>
+    <string name="intent_hint">Open an app or add a task</string>
+    <string name="intent_go">Go</string>
+    <string name="intent_confirm">Confirm</string>
     <string name="search_apps">Search apps</string>
     <string name="open_clock">Open Clock and alarms</string>
     <string name="clock_unavailable">No Clock app is available.</string>

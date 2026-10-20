@@ -18,7 +18,9 @@ object PreferencesCodec {
             launchCounts = j.optJSONObject("launchCounts").longMap(), lastLaunchEpochMillis = j.optJSONObject("lastLaunchEpochMillis").longMap(), habitName = legacyName,
             habitDoneEpochDay = j.optLong("habitDoneEpochDay", -1), routineCompletedEpochDays = j.optJSONArray("routineCompletedEpochDays").longs(), routineWeeklyTarget = j.optInt("routineWeeklyTarget", 3).coerceIn(1, 7),
             // Cloud planning is a new, explicit consent. Never infer it from a legacy provider/key.
-            openAiEnabled = j.optBoolean("plannerCloudOptIn", false), routines = RoutineCollection.sanitize(routines),
+            openAiEnabled = j.optBoolean("plannerCloudOptIn", false),
+            // Independent new consent: never infer from planner consent, a provider, or an API key.
+            intentCloudEnabled = j.optBoolean("intentCloudOptIn", false), routines = RoutineCollection.sanitize(routines),
             plannerProfile = profile(j.optJSONObject("plannerProfile"), routines), localTasks = j.optJSONArray("localTasks").tasks(),
             legacyPlannerHistory = j.optJSONObject("legacyPlannerHistory")?.toString() ?: if (j.has("feedback") || j.has("reflections")) JSONObject().put("feedback", j.optJSONArray("feedback") ?: JSONArray()).put("reflections", j.optJSONArray("reflections") ?: JSONArray()).toString() else null,
         )
@@ -28,7 +30,7 @@ object PreferencesCodec {
         .put("favorites", JSONArray(v.favoritePackages.sorted())).put("hidden", JSONArray(v.hiddenPackages.sorted())).put("aliases", jsonMap(v.aliases))
         .put("theme", v.theme.name).put("textScale", v.textScale.toDouble()).put("appSort", v.appSort.name).put("launchCounts", jsonMap(v.launchCounts)).put("lastLaunchEpochMillis", jsonMap(v.lastLaunchEpochMillis))
         .put("habitName", v.habitName).put("habitDoneEpochDay", v.habitDoneEpochDay).put("routineCompletedEpochDays", JSONArray(v.routineCompletedEpochDays.sorted())).put("routineWeeklyTarget", v.routineWeeklyTarget)
-        .put("plannerCloudOptIn", v.openAiEnabled).put("routines", JSONArray(RoutineCollection.sanitize(v.routines).map(::routineJson)))
+        .put("plannerCloudOptIn", v.openAiEnabled).put("intentCloudOptIn", v.intentCloudEnabled).put("routines", JSONArray(RoutineCollection.sanitize(v.routines).map(::routineJson)))
         .put("plannerProfile", profileJson(v.plannerProfile.normalized())).put("localTasks", JSONArray(v.localTasks.take(200).map(::taskJson))).put("legacyPlannerHistory", v.legacyPlannerHistory?.let(::JSONObject) ?: JSONObject.NULL).toString()
 
     private fun profile(j: JSONObject?, routines: List<Routine>): PlannerProfile {

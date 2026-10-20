@@ -1,4 +1,4 @@
-# Phase 1–2 planner
+# Phase 1–3 planner
 
 ## Architecture and data flow
 
@@ -28,7 +28,7 @@ Health permissions are read-only and optional in both `full` and `safe`. The Per
 
 Planner settings expose sleep/wake/wind-down, gym weekly target/duration/travel/preferred slots, Health Connect exercise minimum and strength qualification, meeting-prep lead time, hard constraints, goals, proactive daily budget, important app package names, local tasks, free-event inclusion and calendar selection. Selecting no calendars intentionally yields no calendar events and is surfaced as a warning/state.
 
-The planner model defaults to `gpt-5-mini`, low reasoning, 4000 completion tokens. The separately stored intent-bar model defaults to `gpt-5-nano`, minimal reasoning, 800 completion tokens. Both model names, reasoning efforts, and token caps are editable under Planner settings; the intent-bar model is groundwork and is not invoked. Notification digest remains a placeholder.
+The planner model defaults to `gpt-5-mini`, low reasoning, 4000 completion tokens. The separately stored intent-bar model defaults to `gpt-5-nano`, minimal reasoning, 800 completion tokens. Both model names, reasoning efforts, and token caps are editable under Planner settings. Phase 3 invokes the intent model only for locally unmatched input and only with separate explicit consent and a key; see [intent-bar.md](intent-bar.md). Notification digest remains Phase 4.
 
 ## Platform and hardware verification
 

@@ -19,6 +19,8 @@ data class LauncherPreferences(
     val routineCompletedEpochDays: Set<Long> = emptySet(),
     val routineWeeklyTarget: Int = 3,
     val openAiEnabled: Boolean = false,
+    /** Separate consent for the much smaller intent-classifier payload. */
+    val intentCloudEnabled: Boolean = false,
     val routines: List<Routine> = emptyList(),
     val plannerProfile: PlannerProfile = PlannerProfile(),
     val localTasks: List<LocalTask> = emptyList(),

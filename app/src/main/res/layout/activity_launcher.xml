@@ -85,6 +85,46 @@
                     android:textSize="16sp" />
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/intentBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/intentInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/intent_hint"
+                    android:imeOptions="actionGo"
+                    android:importantForAutofill="no"
+                    android:inputType="text|textNoSuggestions"
+                    android:maxLength="240"
+                    android:maxLines="1"
+                    android:minHeight="48dp" />
+
+                <Button
+                    android:id="@+id/intentGo"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:minWidth="64dp"
+                    android:text="@string/intent_go"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/intentStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite"
+                android:layout_marginTop="2dp"
+                android:textSize="13sp" />
+
             <TextView
                 android:id="@+id/plannerHeadline"
                 android:layout_width="match_parent"

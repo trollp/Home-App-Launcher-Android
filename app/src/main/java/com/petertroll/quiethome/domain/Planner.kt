@@ -237,7 +237,7 @@ object PlanValidator {
         "complete_task" to setOf("taskId"), "add_task" to setOf("title"), "create_calendar_block" to setOf("start", "end", "title"),
         "set_alarm" to setOf("time"), "toggle_dnd" to setOf("state"), "mark_gym_done" to emptySet(),
     )
-    private val optionalArgs = mapOf("add_task" to setOf("due"), "toggle_dnd" to setOf("until"))
+    private val optionalArgs = mapOf("add_task" to setOf("due"))
 
     fun validate(raw: PlannerPlan, snapshot: PlannerSnapshot, profile: PlannerProfile, now: Instant): PlannerPlan {
         val refs = snapshot.knownRefIds(); val events = snapshot.events.associateBy { it.id }; val tasks = snapshot.tasks.associateBy { it.id }
@@ -281,7 +281,7 @@ object PlanValidator {
                 if (action.args.getValue("title").length > 60 || end <= start || snapshot.freeSlots.none { start >= it.startEpochMillis && end <= it.endEpochMillis }) return null
             }
             "set_alarm" -> if (!time.matches(action.args.getValue("time"))) return null
-            "toggle_dnd" -> if (action.args["state"] !in setOf("on", "off") || action.args["until"]?.let { !time.matches(it) } == true) return null
+            "toggle_dnd" -> if (action.args["state"] !in setOf("on", "off")) return null
         }
         return action.copy(id = id, label = label, args = action.args.mapValues { (key, value) -> SafePlannerText.clean(value, when { key == "title" && action.tool == "add_task" -> 100; key == "title" -> 60; else -> 200 }) ?: return null })
     }
@@ -313,7 +313,7 @@ object SafePlannerText {
     private val forbidden = Regex("(?i)(https?://|intent:|javascript:|content:|file:|data:|android-app:)")
     fun clean(value: String, max: Int): String? {
         val trimmed = value.trim()
-        if (trimmed.isEmpty() || forbidden.containsMatchIn(trimmed) || trimmed.any { it == '\n' || it == '\r' || it.code < 0x20 }) return null
+        if (trimmed.isEmpty() || forbidden.containsMatchIn(trimmed) || trimmed.any { it == '\n' || it == '\r' || it == '\u2028' || it == '\u2029' || it.code < 0x20 }) return null
         return trimmed.take(max)
     }
 }

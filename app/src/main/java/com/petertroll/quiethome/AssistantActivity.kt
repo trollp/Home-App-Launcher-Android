@@ -21,13 +21,24 @@ import java.util.concurrent.Executors
 class AssistantActivity : AppCompatActivity() {
     private lateinit var root: LinearLayout
     private val executor = Executors.newSingleThreadExecutor()
+    @Volatile private var started = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(20), dp(24), dp(40)) }
         setContentView(ScrollView(this).apply { addView(root) })
         render(PlanStore(this).load()?.first ?: PlannerCoordinator(this).immediateFallback())
         ActivityLogStore(this).append(ActivityKind.PLAN_SHOWN)
-        executor.execute { val fresh = PlannerCoordinator(this).refresh(); runOnUiThread { if (!isFinishing && !isDestroyed) render(fresh) } }
+        executor.execute { val fresh = PlannerCoordinator(this).refresh(); runOnUiThread { if (started && !isFinishing && !isDestroyed) render(fresh) } }
+    }
+    override fun onStart() {
+        super.onStart()
+        LaunchRouter.ownerStarted(this)
+        started = true
+    }
+    override fun onStop() {
+        started = false
+        LaunchRouter.ownerStopped(this)
+        super.onStop()
     }
     override fun onDestroy() { executor.shutdownNow(); super.onDestroy() }
 
@@ -62,13 +73,21 @@ class AssistantActivity : AppCompatActivity() {
             val snapshot = currentSnapshot()
             val needsConfirmation = action.tool in setOf("add_task", "create_calendar_block", "set_alarm", "toggle_dnd")
             runOnUiThread {
+                if (!started || isFinishing || isDestroyed) return@runOnUiThread
                 if (needsConfirmation) AlertDialog.Builder(this).setTitle(action.label).setMessage("Allow Quiet Home to perform this action?").setPositiveButton("Continue") { _, _ -> execute(action, snapshot, true) }.setNegativeButton("Cancel", null).show()
                 else execute(action, snapshot, false)
             }
         }
     }
     private fun execute(action: PlanAction, snapshot: PlannerSnapshot, confirmed: Boolean) {
-        ActionExecutor(this).execute(action, snapshot, confirmed).onSuccess { Toast.makeText(this, "Action completed", Toast.LENGTH_SHORT).show() }.onFailure { Toast.makeText(this, it.message ?: "Action unavailable", Toast.LENGTH_LONG).show() }
+        executor.execute {
+            val result = ActionExecutor(this).execute(action, snapshot, confirmed) { started && !isFinishing && !isDestroyed }
+            runOnUiThread {
+                if (!started || isFinishing || isDestroyed) return@runOnUiThread
+                result.onSuccess { Toast.makeText(this, "Action completed", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(this, it.message ?: "Action unavailable", Toast.LENGTH_LONG).show() }
+            }
+        }
     }
     private fun currentSnapshot(): PlannerSnapshot {
         val prefs = PreferencesStore(this).load(); val now = Instant.now(); val collection = CalendarProviderCollector(this).collect(now, prefs.plannerProfile).getOrNull()
