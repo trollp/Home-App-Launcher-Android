@@ -25,6 +25,8 @@ data class GymProfile(
     val durationMinutes: Int = 60,
     val travelMinutes: Int = 15,
     val preferredSlots: List<String> = listOf("18:00"),
+    val healthExerciseMinimumMinutes: Int = 30,
+    val strengthAlwaysQualifies: Boolean = true,
 )
 enum class CalendarSelectionMode { ALL_VISIBLE, SELECTED }
 data class PlannerProfile(
@@ -45,7 +47,7 @@ data class PlannerProfile(
 ) {
     fun normalized() = copy(
         windDownMinutes = windDownMinutes.coerceIn(0, 180),
-        gym = gym.copy(weeklyTarget = gym.weeklyTarget.coerceIn(0, 7), durationMinutes = gym.durationMinutes.coerceIn(15, 180), travelMinutes = gym.travelMinutes.coerceIn(0, 120), preferredSlots = gym.preferredSlots.take(8)),
+        gym = gym.copy(weeklyTarget = gym.weeklyTarget.coerceIn(0, 7), durationMinutes = gym.durationMinutes.coerceIn(15, 180), travelMinutes = gym.travelMinutes.coerceIn(0, 120), preferredSlots = gym.preferredSlots.take(8), healthExerciseMinimumMinutes = gym.healthExerciseMinimumMinutes.coerceIn(1, 240)),
         meetingPrepMinutes = meetingPrepMinutes.coerceIn(0, 60),
         hardConstraints = hardConstraints.map { it.trim().take(120) }.filter(String::isNotBlank).take(10),
         goals = goals.map { it.trim().take(120) }.filter(String::isNotBlank).take(5),
@@ -117,6 +119,7 @@ data class SnapshotFreshness(
     val calendarStatus: SourceStatus = if (calendarEpochMillis == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE,
     val weatherStatus: SourceStatus = if (weatherEpochMillis == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE,
     val usageStatus: SourceStatus = if (usageEpochMillis == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE,
+    val healthEpochMillis: Long? = null,
 )
 data class PlannerSnapshot(
     val generatedAtEpochMillis: Long, val zoneId: String, val events: List<CalendarEvent>, val tasks: List<LocalTask>,
@@ -126,6 +129,7 @@ data class PlannerSnapshot(
     val freshness: SnapshotFreshness,
     val profile: PlannerProfile = PlannerProfile(),
     val allowedAppPackages: Set<String> = emptySet(),
+    val health: HealthSummary = HealthSummary(),
 ) {
     fun knownRefIds() = events.mapTo(mutableSetOf()) { it.id }.apply { addAll(tasks.map { it.id }); addAll(trainingTargets.keys.map { "training:$it" }) }
 }
@@ -139,6 +143,7 @@ object SnapshotBuilder {
         weatherCollectedAt: Long? = if (weather != null) now.toEpochMilli() else null,
         usageCollectedAt: Long? = if (usage.isNotEmpty()) now.toEpochMilli() else null,
         allowedAppPackages: Set<String> = emptySet(),
+        health: HealthSummary = HealthSummary(),
     ): PlannerSnapshot {
         val end = now.plus(Duration.ofHours(24))
         val boundedEvents = events.filter { it.endEpochMillis > now.toEpochMilli() && it.beginEpochMillis < end.toEpochMilli() }
@@ -159,11 +164,13 @@ object SnapshotBuilder {
         val training = buildMap {
             put("gymWeeklyTarget", profile.gym.weeklyTarget)
             put("gymActual14d", activity.count { it.kind == ActivityKind.GYM_ACTUAL })
+            health.qualifyingGymSessions7d?.let { put("healthGymActual7d", it) }
             RoutineCollection.sanitize(routines).filter { it.enabled }.forEach { routine ->
                 put("routine:${routine.id}:weeklyTarget", routine.weeklyTarget)
             }
         }
-        var result = PlannerSnapshot(now.toEpochMilli(), zone.id, boundedEvents, activeTasks, weather?.trim()?.take(500), usage.take(50).toMap(), training, false, free, free.filter { it.durationMinutes >= gymNeeded }, PlannerMetrics(busy.size, meetingMinutes, longest, due, overdue), 0, ActivityLogPolicy.summary(ActivityLogPolicy.bound(activity, now)), SnapshotFreshness(calendarCollectedAt, weatherCollectedAt, now.toEpochMilli(), usageCollectedAt, calendarStatus, if (weatherCollectedAt == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE, if (usageCollectedAt == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE), profile.normalized(), allowedAppPackages.map { it.take(200) }.take(200).toSet())
+        val boundedHealth = health.bounded()
+        var result = PlannerSnapshot(now.toEpochMilli(), zone.id, boundedEvents, activeTasks, weather?.trim()?.take(500), usage.take(50).toMap(), training, boundedHealth.statuses.values.any { it == HealthReadStatus.AVAILABLE || it == HealthReadStatus.NO_DATA }, free, free.filter { it.durationMinutes >= gymNeeded }, PlannerMetrics(busy.size, meetingMinutes, longest, due, overdue), 0, ActivityLogPolicy.summary(ActivityLogPolicy.bound(activity, now)), SnapshotFreshness(calendarCollectedAt, weatherCollectedAt, now.toEpochMilli(), usageCollectedAt, calendarStatus, if (weatherCollectedAt == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE, if (usageCollectedAt == null) SourceStatus.UNAVAILABLE else SourceStatus.AVAILABLE, boundedHealth.collectedAtEpochMillis), profile.normalized(), allowedAppPackages.map { it.take(200) }.take(200).toSet(), boundedHealth)
         while (runCatching { PlannerSnapshotCodec.encode(result) }.isFailure) {
             result = when {
                 result.tasks.isNotEmpty() -> result.copy(tasks = result.tasks.dropLast(1))
@@ -317,7 +324,12 @@ object FallbackPlanner {
         snapshot.events.firstOrNull()?.let { entries += PlanNext(it.id, Instant.ofEpochMilli(it.beginEpochMillis).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm")), it.title.take(80), NextKind.EVENT) }
         snapshot.tasks.firstOrNull()?.let { entries += PlanNext(it.id, it.dueEpochMillis?.let { due -> Instant.ofEpochMilli(due).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm")) }, it.title.take(80), NextKind.TASK) }
         snapshot.weather?.let { entries += PlanNext(null, null, it.take(80), NextKind.OTHER) }
-        entries += PlanNext("training:gymWeeklyTarget", null, "Gym progress: target ${profile.gym.weeklyTarget} this week", NextKind.GYM)
+        val observedGym = snapshot.health.qualifyingGymSessions7d
+        entries += PlanNext("training:gymWeeklyTarget", null, if (observedGym != null) "Gym progress: $observedGym observed in 7 days · target ${profile.gym.weeklyTarget}" else "Gym progress: target ${profile.gym.weeklyTarget} this week", NextKind.GYM)
+        snapshot.health.sleepMinutes24h?.let { minutes ->
+            val duration = if (minutes >= 60) "${minutes / 60} h ${minutes % 60} min" else "$minutes min"
+            entries += PlanNext(null, null, "Sleep recorded: $duration in the last 24 hours", NextKind.SLEEP)
+        }
         return PlannerPlan(if (snapshot.events.isNotEmpty()) "Next up: ${snapshot.events.first().title}".take(90) else "A clear view of the next 24 hours", entries.take(5), emptyList(), meetingPrep(snapshot, profile, zone), emptyList())
     }
     fun meetingPrep(snapshot: PlannerSnapshot, profile: PlannerProfile, zone: ZoneId): List<PlanNudge> = snapshot.events.filter { it.busy && !it.allDay }.take(2).map {
@@ -332,7 +344,7 @@ object PlannerSnapshotCodec {
         val json = JSONObject().put("generatedAt", value.generatedAtEpochMillis).put("zone", value.zoneId)
             .put("events", JSONArray(value.events.map(::eventJson))).put("tasks", JSONArray(value.tasks.map(::taskJson)))
             .put("weather", value.weather ?: JSONObject.NULL).put("usage", JSONObject(value.usageMinutesByPackage))
-            .put("training", JSONObject(value.trainingTargets)).put("healthAvailable", false)
+            .put("training", JSONObject(value.trainingTargets)).put("healthAvailable", value.healthAvailable).put("health", healthJson(value.health))
             .put("freeSlots", JSONArray(value.freeSlots.map(::slotJson))).put("gymSlots", JSONArray(value.gymCandidateSlots.map(::slotJson)))
             .put("metrics", JSONObject().put("meetingCount", value.metrics.meetingCount).put("meetingMinutes", value.metrics.meetingMinutes).put("longest", value.metrics.longestMeetingStretchMinutes).put("tasksDue", value.metrics.tasksDue).put("tasksOverdue", value.metrics.tasksOverdue))
             .put("notificationBatchCount", value.notificationBatchCount)
@@ -348,18 +360,34 @@ object PlannerSnapshotCodec {
         val metrics = j.getJSONObject("metrics"); val freshness = j.getJSONObject("freshness")
         val activity = j.getJSONObject("activity"); val records = activity.getJSONArray("last20").objects().map { ActivityRecord(it.getString("id"), it.getLong("at"), ActivityKind.valueOf(it.getString("kind")), it.optString("ref").takeIf(String::isNotBlank)) }
         val countsJson = activity.getJSONObject("counts"); val counts = ActivityKind.entries.associateWith { countsJson.optInt(it.name) }
-        return PlannerSnapshot(j.getLong("generatedAt"), j.getString("zone"), events, tasks, j.optString("weather").takeIf(String::isNotBlank), j.getJSONObject("usage").intMap(), j.getJSONObject("training").intMap(), false, j.getJSONArray("freeSlots").slots(), j.getJSONArray("gymSlots").slots(), PlannerMetrics(metrics.getInt("meetingCount"), metrics.getInt("meetingMinutes"), metrics.getInt("longest"), metrics.getInt("tasksDue"), metrics.getInt("tasksOverdue")), j.getInt("notificationBatchCount"), ActivitySummary(counts, records), SnapshotFreshness(freshness.optLongOrNull("calendar"), freshness.optLongOrNull("weather"), freshness.getLong("tasks"), freshness.optLongOrNull("usage"), source(freshness, "calendarStatus"), source(freshness, "weatherStatus"), source(freshness, "usageStatus")), profile(j.getJSONObject("profile")), j.getJSONArray("allowedAppPackages").strings().toSet())
+        val health = health(j.optJSONObject("health"))
+        return PlannerSnapshot(j.getLong("generatedAt"), j.getString("zone"), events, tasks, j.optString("weather").takeIf(String::isNotBlank), j.getJSONObject("usage").intMap(), j.getJSONObject("training").intMap(), j.optBoolean("healthAvailable"), j.getJSONArray("freeSlots").slots(), j.getJSONArray("gymSlots").slots(), PlannerMetrics(metrics.getInt("meetingCount"), metrics.getInt("meetingMinutes"), metrics.getInt("longest"), metrics.getInt("tasksDue"), metrics.getInt("tasksOverdue")), j.getInt("notificationBatchCount"), ActivitySummary(counts, records), SnapshotFreshness(freshness.optLongOrNull("calendar"), freshness.optLongOrNull("weather"), freshness.getLong("tasks"), freshness.optLongOrNull("usage"), source(freshness, "calendarStatus"), source(freshness, "weatherStatus"), source(freshness, "usageStatus"), freshness.optLongOrNull("health")), profile(j.getJSONObject("profile")), j.getJSONArray("allowedAppPackages").strings().toSet(), health)
     }
     private fun eventJson(e: CalendarEvent) = JSONObject().put("id", e.id).put("providerId", e.providerEventId).put("begin", e.beginEpochMillis).put("end", e.endEpochMillis).put("title", e.title).put("location", e.location).put("allDay", e.allDay).put("busy", e.busy).put("calendarId", e.calendarId).put("calendarName", e.calendarName).put("accountName", e.accountName).put("online", e.onlineMeeting)
     private fun taskJson(t: LocalTask) = JSONObject().put("id", t.id).put("title", t.title).put("due", t.dueEpochMillis ?: JSONObject.NULL).put("important", t.important).put("completed", t.completed).put("created", t.createdAtEpochMillis)
     private fun slotJson(s: TimeSlot) = JSONObject().put("start", s.startEpochMillis).put("end", s.endEpochMillis)
-    private fun profileJson(p: PlannerProfile) = JSONObject().put("bedtime", p.bedtime.toString()).put("wakeTime", p.wakeTime.toString()).put("windDownMinutes", p.windDownMinutes).put("meetingPrepMinutes", p.meetingPrepMinutes).put("proactiveBudget", p.proactiveBudget).put("hardConstraints", JSONArray(p.hardConstraints)).put("goals", JSONArray(p.goals)).put("importantApps", JSONArray(p.importantApps.sorted())).put("calendarSelectionMode", p.calendarSelectionMode.name).put("selectedCalendarIds", JSONArray(p.selectedCalendarIds.sorted())).put("includeFreeEvents", p.includeFreeEvents).put("gym", JSONObject().put("weeklyTarget", p.gym.weeklyTarget).put("durationMinutes", p.gym.durationMinutes).put("travelMinutes", p.gym.travelMinutes).put("preferredSlots", JSONArray(p.gym.preferredSlots)))
-    private fun profile(j: JSONObject): PlannerProfile { val gym = j.getJSONObject("gym"); return PlannerProfile(LocalTime.parse(j.getString("bedtime")), LocalTime.parse(j.getString("wakeTime")), j.getInt("windDownMinutes"), GymProfile(gym.getInt("weeklyTarget"), gym.getInt("durationMinutes"), gym.getInt("travelMinutes"), gym.getJSONArray("preferredSlots").strings()), j.getInt("meetingPrepMinutes"), j.getJSONArray("hardConstraints").strings(), j.getJSONArray("goals").strings(), j.getInt("proactiveBudget"), j.getJSONArray("importantApps").strings().toSet(), j.getBoolean("includeFreeEvents"), CalendarSelectionMode.valueOf(j.getString("calendarSelectionMode")), j.getJSONArray("selectedCalendarIds").longs().toSet()) }
+    private fun profileJson(p: PlannerProfile) = JSONObject().put("bedtime", p.bedtime.toString()).put("wakeTime", p.wakeTime.toString()).put("windDownMinutes", p.windDownMinutes).put("meetingPrepMinutes", p.meetingPrepMinutes).put("proactiveBudget", p.proactiveBudget).put("hardConstraints", JSONArray(p.hardConstraints)).put("goals", JSONArray(p.goals)).put("importantApps", JSONArray(p.importantApps.sorted())).put("calendarSelectionMode", p.calendarSelectionMode.name).put("selectedCalendarIds", JSONArray(p.selectedCalendarIds.sorted())).put("includeFreeEvents", p.includeFreeEvents).put("gym", JSONObject().put("weeklyTarget", p.gym.weeklyTarget).put("durationMinutes", p.gym.durationMinutes).put("travelMinutes", p.gym.travelMinutes).put("preferredSlots", JSONArray(p.gym.preferredSlots)).put("healthExerciseMinimumMinutes", p.gym.healthExerciseMinimumMinutes).put("strengthAlwaysQualifies", p.gym.strengthAlwaysQualifies))
+    private fun profile(j: JSONObject): PlannerProfile { val gym = j.getJSONObject("gym"); return PlannerProfile(LocalTime.parse(j.getString("bedtime")), LocalTime.parse(j.getString("wakeTime")), j.getInt("windDownMinutes"), GymProfile(gym.getInt("weeklyTarget"), gym.getInt("durationMinutes"), gym.getInt("travelMinutes"), gym.getJSONArray("preferredSlots").strings(), gym.optInt("healthExerciseMinimumMinutes", 30), gym.optBoolean("strengthAlwaysQualifies", true)), j.getInt("meetingPrepMinutes"), j.getJSONArray("hardConstraints").strings(), j.getJSONArray("goals").strings(), j.getInt("proactiveBudget"), j.getJSONArray("importantApps").strings().toSet(), j.getBoolean("includeFreeEvents"), CalendarSelectionMode.valueOf(j.getString("calendarSelectionMode")), j.getJSONArray("selectedCalendarIds").longs().toSet()) }
     private fun freshnessJson(v: PlannerSnapshot): JSONObject {
         fun age(at: Long?): Any = at?.let { (v.generatedAtEpochMillis - it).coerceAtLeast(0) / 60_000L } ?: JSONObject.NULL
-        return JSONObject().put("calendar", v.freshness.calendarEpochMillis ?: JSONObject.NULL).put("weather", v.freshness.weatherEpochMillis ?: JSONObject.NULL).put("tasks", v.freshness.tasksEpochMillis).put("usage", v.freshness.usageEpochMillis ?: JSONObject.NULL)
+        return JSONObject().put("calendar", v.freshness.calendarEpochMillis ?: JSONObject.NULL).put("weather", v.freshness.weatherEpochMillis ?: JSONObject.NULL).put("tasks", v.freshness.tasksEpochMillis).put("usage", v.freshness.usageEpochMillis ?: JSONObject.NULL).put("health", v.freshness.healthEpochMillis ?: JSONObject.NULL)
             .put("calendarStatus", v.freshness.calendarStatus.name).put("weatherStatus", v.freshness.weatherStatus.name).put("usageStatus", v.freshness.usageStatus.name)
-            .put("calendarAgeMinutes", age(v.freshness.calendarEpochMillis)).put("weatherAgeMinutes", age(v.freshness.weatherEpochMillis)).put("taskAgeMinutes", age(v.freshness.tasksEpochMillis)).put("usageAgeMinutes", age(v.freshness.usageEpochMillis))
+            .put("calendarAgeMinutes", age(v.freshness.calendarEpochMillis)).put("weatherAgeMinutes", age(v.freshness.weatherEpochMillis)).put("taskAgeMinutes", age(v.freshness.tasksEpochMillis)).put("usageAgeMinutes", age(v.freshness.usageEpochMillis)).put("healthAgeMinutes", age(v.freshness.healthEpochMillis))
+    }
+    private fun healthJson(h: HealthSummary) = JSONObject()
+        .put("statuses", JSONObject(h.statuses.mapKeys { it.key.name }.mapValues { it.value.name }))
+        .put("sleepMinutes24h", h.sleepMinutes24h ?: JSONObject.NULL).put("sleepStageMinutes24h", JSONObject(h.sleepStageMinutes24h))
+        .put("exerciseSessions7d", h.exerciseSessions7d ?: JSONObject.NULL).put("exerciseMinutes7d", h.exerciseMinutes7d ?: JSONObject.NULL).put("qualifyingGymSessions7d", h.qualifyingGymSessions7d ?: JSONObject.NULL)
+        .put("heartRateAverage24h", h.heartRateAverage24h ?: JSONObject.NULL).put("heartRateMinimum24h", h.heartRateMinimum24h ?: JSONObject.NULL).put("heartRateMaximum24h", h.heartRateMaximum24h ?: JSONObject.NULL)
+        .put("stepsToday", h.stepsToday ?: JSONObject.NULL).put("caloriesTodayKcal", h.caloriesTodayKcal ?: JSONObject.NULL).put("collectedAt", h.collectedAtEpochMillis ?: JSONObject.NULL).put("cached", h.cached)
+    private fun health(j: JSONObject?): HealthSummary {
+        if (j == null) return HealthSummary()
+        val statuses = j.optJSONObject("statuses")
+        return HealthSummary(
+            HealthRecordType.entries.associateWith { type -> runCatching { HealthReadStatus.valueOf(statuses?.optString(type.name).orEmpty()) }.getOrDefault(HealthReadStatus.SDK_UNAVAILABLE) },
+            j.optIntOrNull("sleepMinutes24h"), (j.optJSONObject("sleepStageMinutes24h") ?: JSONObject()).intMap(), j.optIntOrNull("exerciseSessions7d"), j.optIntOrNull("exerciseMinutes7d"), j.optIntOrNull("qualifyingGymSessions7d"),
+            j.optIntOrNull("heartRateAverage24h"), j.optIntOrNull("heartRateMinimum24h"), j.optIntOrNull("heartRateMaximum24h"), j.optLongOrNull("stepsToday"), j.optIntOrNull("caloriesTodayKcal"), j.optLongOrNull("collectedAt"), j.optBoolean("cached"),
+        ).bounded()
     }
     private fun source(j: JSONObject, key: String) = runCatching { SourceStatus.valueOf(j.getString(key)) }.getOrDefault(SourceStatus.UNAVAILABLE)
     private fun JSONArray.objects() = (0 until length()).map { getJSONObject(it) }
@@ -367,5 +395,6 @@ object PlannerSnapshotCodec {
     private fun JSONArray.longs() = (0 until length()).map { getLong(it) }
     private fun JSONArray.slots() = objects().map { TimeSlot(it.getLong("start"), it.getLong("end")) }
     private fun JSONObject.optLongOrNull(key: String) = if (isNull(key) || !has(key)) null else getLong(key)
+    private fun JSONObject.optIntOrNull(key: String) = if (isNull(key) || !has(key)) null else getInt(key)
     private fun JSONObject.intMap() = keys().asSequence().associateWith { getInt(it) }
 }

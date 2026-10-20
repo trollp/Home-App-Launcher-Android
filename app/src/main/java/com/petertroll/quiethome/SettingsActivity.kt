@@ -41,6 +41,8 @@ class SettingsActivity : AppCompatActivity() {
         action("Proactive budget · ${p.proactiveBudget}/day") { editNumber("Proactive nudges per day", p.proactiveBudget, 0, 10) { saveProfile(p.copy(proactiveBudget = it)) } }
         action("Important apps (${p.importantApps.size})") { editLines("Important app package names, one per line", p.importantApps.sorted(), 100) { saveProfile(p.copy(importantApps = it.toSet())) } }
         action("Preferred gym slots · ${p.gym.preferredSlots.joinToString()}") { editLines("Preferred times (HH:mm), one per line", p.gym.preferredSlots, 8) { slots -> require(slots.all { runCatching { LocalTime.parse(it) }.isSuccess }); saveProfile(p.copy(gym = p.gym.copy(preferredSlots = slots))) } }
+        action("Health exercise minimum · ${p.gym.healthExerciseMinimumMinutes} min") { editNumber("Minimum exercise minutes to count as gym", p.gym.healthExerciseMinimumMinutes, 1, 240) { saveProfile(p.copy(gym = p.gym.copy(healthExerciseMinimumMinutes = it))) } }
+        action("Strength sessions always count · ${if (p.gym.strengthAlwaysQualifies) "on" else "off"}") { saveProfile(p.copy(gym = p.gym.copy(strengthAlwaysQualifies = !p.gym.strengthAlwaysQualifies))) }
         action("Planner model · ${p.plannerModel.name} · ${p.plannerModel.reasoningEffort} · ${p.plannerModel.maxCompletionTokens}") { editModel("Planner model", p.plannerModel) { saveProfile(p.copy(plannerModel = it)) } }
         action("Intent model · ${p.intentModel.name} · ${p.intentModel.reasoningEffort} · ${p.intentModel.maxCompletionTokens}") { editModel("Intent-bar model", p.intentModel) { saveProfile(p.copy(intentModel = it)) } }
 
@@ -63,7 +65,7 @@ class SettingsActivity : AppCompatActivity() {
         action("Include free events · ${if (p.includeFreeEvents) "on" else "off"}") { saveProfile(p.copy(includeFreeEvents = !p.includeFreeEvents)) }
 
         section("OpenAI")
-        text("Cloud planning is off by default. If you explicitly enable it, the bounded snapshot—including calendar titles, locations, local tasks, profile, usage summaries and recent planner activity—is sent to OpenAI. Local fallback works without a key or consent.")
+        text("Cloud planning is off by default. If you explicitly enable it, the bounded snapshot—including calendar titles, locations, local tasks, profile, usage summaries, bounded Health Connect summaries, and recent planner activity—is sent to OpenAI. Raw health records are never included. Local fallback works without a key or consent.")
         action("Send planner snapshot to OpenAI · ${if (prefs.openAiEnabled) "ON" else "OFF"}") { store.save(prefs.copy(openAiEnabled = !prefs.openAiEnabled)); PlanStore(this).invalidate(); render() }
         action(if (credentials.hasOpenAiKey()) "Replace OpenAI key" else "Add OpenAI key") { enterKey() }
         if (credentials.hasOpenAiKey()) action("Delete OpenAI key") { credentials.clearOpenAiKey(); store.save(prefs.copy(openAiEnabled = false)); render() }

@@ -12,19 +12,24 @@ import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.PermissionController
 import com.petertroll.quiethome.databinding.ActivityPermissionCenterBinding
 import com.petertroll.quiethome.domain.PermissionState
+import kotlinx.coroutines.runBlocking
 
 class PermissionCenterActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPermissionCenterBinding
     private lateinit var store: RuleStore
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { render() }
     private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { render() }
+    private val healthPermissions = registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { render() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); binding = ActivityPermissionCenterBinding.inflate(layoutInflater); setContentView(binding.root); store = RuleStore(this)
         binding.homeButton.setOnClickListener { openHome() }
         binding.calendarButton.setOnClickListener { calendarPermission.launch(Manifest.permission.READ_CALENDAR) }
+        binding.healthButton.setOnClickListener { requestHealthPermissions() }
         binding.usageButton.setOnClickListener { openSetting(Settings.ACTION_USAGE_ACCESS_SETTINGS) }
         binding.usageDashboardButton.setOnClickListener { startActivity(Intent(this, UsageDashboardActivity::class.java)) }
         binding.notificationAccessButton.setOnClickListener { openSetting(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS) }
@@ -48,6 +53,7 @@ class PermissionCenterActivity : AppCompatActivity() {
         val calendar = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
         binding.calendarStatus.text = status(R.string.calendar_permission_explanation, calendar)
         binding.calendarButton.isEnabled = !calendar
+        renderHealth()
         binding.usageStatus.text = status(R.string.usage_explanation, UsageAccess(this).isGranted())
         binding.notificationAccessStatus.text = status(R.string.notification_access_explanation, isNotificationListenerEnabled())
         val notifications = Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -71,6 +77,37 @@ class PermissionCenterActivity : AppCompatActivity() {
     }
 
     private fun status(explanation: Int, granted: Boolean) = getString(R.string.status_format, getString(explanation), getString(if (granted) R.string.granted else R.string.not_enabled))
+    private fun renderHealth() {
+        val sdk = if (Build.VERSION.SDK_INT >= 28) HealthConnectClient.getSdkStatus(this) else HealthConnectClient.SDK_UNAVAILABLE
+        if (sdk != HealthConnectClient.SDK_AVAILABLE) {
+            val state = if (sdk == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) "Provider missing or needs an update" else "Unavailable on this device"
+            binding.healthStatus.text = "${getString(R.string.health_permission_explanation)}\n$state"
+            binding.healthButton.isEnabled = sdk == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED
+            return
+        }
+        val granted = runCatching { runBlocking { HealthConnectClient.getOrCreate(this@PermissionCenterActivity).permissionController.getGrantedPermissions() } }.getOrDefault(emptySet())
+        val foreground = granted.containsAll(HealthPermissions.foreground)
+        val background = HealthPermissionStatus.backgroundAvailableAndGranted(this, granted)
+        val state = when {
+            foreground && background -> "Read access granted, including background"
+            foreground -> "Read access granted; background access not granted or unavailable"
+            granted.intersect(HealthPermissions.foreground).isNotEmpty() -> "Some read categories granted"
+            else -> getString(R.string.not_enabled)
+        }
+        binding.healthStatus.text = "${getString(R.string.health_permission_explanation)}\n$state"
+        binding.healthButton.isEnabled = true
+    }
+    private fun requestHealthPermissions() {
+        if (Build.VERSION.SDK_INT < 28) return
+        when (HealthConnectClient.getSdkStatus(this)) {
+            HealthConnectClient.SDK_AVAILABLE -> healthPermissions.launch(HealthPermissionStatus.requestable(this))
+            HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> runCatching {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata")))
+            }.recoverCatching {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata")))
+            }
+        }
+    }
     private fun openSetting(action: String, data: Uri? = null) {
         val primary = Intent(action).apply { this.data = data }
         runCatching { startActivity(primary) }.recoverCatching { startActivity(Intent(Settings.ACTION_SETTINGS)) }

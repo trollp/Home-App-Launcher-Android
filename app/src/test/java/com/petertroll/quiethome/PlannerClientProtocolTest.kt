@@ -30,6 +30,9 @@ class PlannerClientProtocolTest {
         assertTrue(system.contains("No meetings after 17:00"))
         assertTrue(system.contains("Train three times"))
         assertTrue(system.contains("Stockholm"))
+        assertTrue(system.contains("never diagnose"))
+        assertTrue(system.contains("Body Battery"))
+        assertTrue(system.contains("VO2 max"))
     }
 
     @Test fun `response rejects length finish and empty content`() {

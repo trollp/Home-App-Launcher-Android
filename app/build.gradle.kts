@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.petertroll.quiethome"
-    compileSdk = 34
+    compileSdk = 36
 
     flavorDimensions += "capabilities"
 
@@ -13,8 +13,8 @@ android {
         applicationId = "com.petertroll.quiethome"
         minSdk = 26
         targetSdk = 34
-        versionCode = 16
-        versionName = "0.17.0-planner-phase1"
+        versionCode = 17
+        versionName = "0.18.0-planner-phase2"
     }
     productFlavors {
         create("full") {
@@ -22,8 +22,8 @@ android {
         }
         create("safe") {
             dimension = "capabilities"
-            versionCode = 16
-            versionName = "0.17.0-planner-phase1-bank-safe"
+            versionCode = 17
+            versionName = "0.18.0-planner-phase2-bank-safe"
         }
     }
     buildTypes {
@@ -52,6 +52,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.health.connect:connect-client:1.1.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

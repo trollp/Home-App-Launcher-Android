@@ -87,6 +87,8 @@
     <string name="default_home_explanation">Default Home: lets Quiet Home appear when you press Home.</string>
     <string name="usage_explanation">Usage access: measures today’s app time for daily limits. Without it, limits fail open.</string>
     <string name="calendar_permission_explanation">Read calendar: lets the planner read the next 24 hours from calendars synced into Android. Quiet Home never writes or deletes events.</string>
+    <string name="health_permission_explanation">Health Connect: optionally reads sleep, exercise, heart rate, steps, and total calories for bounded planner summaries. Raw records are not stored. Background access keeps summaries current; without it, cached observations are used.</string>
+    <string name="allow_health_connect">Review Health Connect access</string>
     <string name="notification_access_explanation">Notification access: enables your local allow, batch, and silence choices. Critical notifications are left alone.</string>
     <string name="notification_permission_explanation">Notification permission: allows approximate local session-end reminders and rate-limited warnings when usage limits cannot be enforced.</string>
     <string name="accessibility_explanation">Accessibility: enables double-tap screen lock and reliable notification gestures. It can also provide optional external-app enforcement; rules fail open on errors.</string>

@@ -1,6 +1,6 @@
 # Quiet Home
 
-Quiet Home is a local-first, text-focused Android home launcher. It keeps the existing launcher, app rules, grayscale experiment, usage tools, and a Phase 1 day planner in one deliberately quiet interface.
+Quiet Home is a local-first, text-focused Android home launcher. It keeps the existing launcher, app rules, grayscale experiment, usage tools, and a Phase 2 day planner in one deliberately quiet interface.
 
 ## Phase 1 planner
 
@@ -13,6 +13,12 @@ Model output is untrusted. Quiet Home validates reference IDs, times, installed/
 Quiet Home has no analytics, ads, app account, or cloud backup. Local fallback, tasks, profile, activity and rules work without cloud planning. SMHI weather is the other network data source.
 
 See [docs/planner.md](docs/planner.md) for architecture, data flow, limits, and device-verification status.
+
+## Phase 2 Health Connect
+
+Optional read-only Health Connect support adds bounded sleep, exercise, heart-rate, steps, and total-calorie observations. Raw records, IDs, origins, and samples are not persisted; only a bounded aggregate is cached for background and immediate local fallback. The local fallback shows observed seven-day gym progress and, when present, neutral recorded sleep duration. Health permissions do not enable cloud sharing: health aggregates join the planner snapshot only when the separate OpenAI snapshot toggle is enabled.
+
+Gym qualification has a configurable minimum duration and an independent option for strength sessions to always qualify. See [docs/health-connect.md](docs/health-connect.md) for permissions, cache behavior, privacy boundaries, and Garmin/device verification requirements.
 
 ## Flavors and bank-safe scope
 
@@ -27,6 +33,7 @@ The core launcher works without special access. Optional features use:
 
 - **Default Home** for launcher selection.
 - **Read calendar** for Android Calendar Provider events; planner shows permission/no-synced-calendar states rather than inventing freshness.
+- **Read Health Connect** for optional bounded planner observations; background read access is requested only where supported and cache is used when it is unavailable.
 - **Post notifications / exact alarms** for meeting-prep reminders. Approximate alarms are used when exact-alarm access is unavailable.
 - **Usage Access**, **Notification Access**, and **Accessibility** only in capabilities that expose them.
 - **Camera** only for the local torch button.

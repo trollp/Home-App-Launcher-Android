@@ -37,7 +37,7 @@ object PreferencesCodec {
         val gym = j.optJSONObject("gym")
         return PlannerProfile(
             bedtime = runCatching { LocalTime.parse(j.optString("bedtime", "23:00")) }.getOrDefault(LocalTime.of(23, 0)), wakeTime = runCatching { LocalTime.parse(j.optString("wake", "07:00")) }.getOrDefault(LocalTime.of(7, 0)), windDownMinutes = j.optInt("windDown", 60),
-            gym = GymProfile(gym?.optInt("weeklyTarget", 3) ?: 3, gym?.optInt("duration", 60) ?: 60, gym?.optInt("travel", 15) ?: 15, gym?.optJSONArray("preferredSlots")?.let { a -> (0 until a.length()).map { a.optString(it) }.take(8) }?.ifEmpty { listOf("18:00") } ?: strings("preferredSlots", 8).ifEmpty { listOf("18:00") }),
+            gym = GymProfile(gym?.optInt("weeklyTarget", 3) ?: 3, gym?.optInt("duration", 60) ?: 60, gym?.optInt("travel", 15) ?: 15, gym?.optJSONArray("preferredSlots")?.let { a -> (0 until a.length()).map { a.optString(it) }.take(8) }?.ifEmpty { listOf("18:00") } ?: strings("preferredSlots", 8).ifEmpty { listOf("18:00") }, gym?.optInt("healthExerciseMinimumMinutes", 30) ?: 30, gym?.optBoolean("strengthAlwaysQualifies", true) ?: true),
             meetingPrepMinutes = j.optInt("meetingPrep", 10), hardConstraints = strings("hardConstraints", 10), goals = strings("goals", 5), proactiveBudget = j.optInt("proactiveBudget", 3), importantApps = strings("importantApps", 100).toSet(), includeFreeEvents = j.optBoolean("includeFreeEvents"),
             calendarSelectionMode = enum(j.optString("calendarMode", "ALL_VISIBLE"), CalendarSelectionMode.ALL_VISIBLE), selectedCalendarIds = j.optJSONArray("selectedCalendarIds")?.let { a -> (0 until a.length()).map { a.optLong(it) }.toSet() } ?: emptySet(),
             plannerModel = ModelConfig(j.optString("plannerModel", "gpt-5-mini"), j.optString("plannerReasoning", "low"), j.optInt("plannerTokens", 4000)),
@@ -45,7 +45,7 @@ object PreferencesCodec {
         ).normalized()
     }
     private fun profileJson(p: PlannerProfile) = JSONObject().put("bedtime", p.bedtime.toString()).put("wake", p.wakeTime.toString()).put("windDown", p.windDownMinutes)
-        .put("gym", JSONObject().put("weeklyTarget", p.gym.weeklyTarget).put("duration", p.gym.durationMinutes).put("travel", p.gym.travelMinutes).put("preferredSlots", JSONArray(p.gym.preferredSlots)))
+        .put("gym", JSONObject().put("weeklyTarget", p.gym.weeklyTarget).put("duration", p.gym.durationMinutes).put("travel", p.gym.travelMinutes).put("preferredSlots", JSONArray(p.gym.preferredSlots)).put("healthExerciseMinimumMinutes", p.gym.healthExerciseMinimumMinutes).put("strengthAlwaysQualifies", p.gym.strengthAlwaysQualifies))
         .put("meetingPrep", p.meetingPrepMinutes).put("hardConstraints", JSONArray(p.hardConstraints)).put("goals", JSONArray(p.goals)).put("proactiveBudget", p.proactiveBudget).put("importantApps", JSONArray(p.importantApps.sorted()))
         .put("includeFreeEvents", p.includeFreeEvents).put("calendarMode", p.calendarSelectionMode.name).put("selectedCalendarIds", JSONArray(p.selectedCalendarIds.sorted()))
         .put("plannerModel", p.plannerModel.name).put("plannerReasoning", p.plannerModel.reasoningEffort).put("plannerTokens", p.plannerModel.maxCompletionTokens)

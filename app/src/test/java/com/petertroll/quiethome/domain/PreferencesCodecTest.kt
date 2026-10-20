@@ -15,6 +15,16 @@ class PreferencesCodecTest {
         assertEquals(profile.intentModel, decoded.plannerProfile.intentModel)
     }
 
+    @Test fun `health gym qualification preferences round trip and normalize`() {
+        val profile = PlannerProfile(gym = GymProfile(healthExerciseMinimumMinutes = 75, strengthAlwaysQualifies = false))
+        val decoded = PreferencesCodec.decode(PreferencesCodec.encode(LauncherPreferences(plannerProfile = profile))).plannerProfile
+        assertEquals(75, decoded.gym.healthExerciseMinimumMinutes)
+        assertFalse(decoded.gym.strengthAlwaysQualifies)
+
+        val excessive = PlannerProfile(gym = GymProfile(healthExerciseMinimumMinutes = 999)).normalized()
+        assertEquals(240, excessive.gym.healthExerciseMinimumMinutes)
+    }
+
     @Test fun `corrupt state recovers to defaults`() {
         assertEquals(LauncherPreferences(), PreferencesCodec.decode("{not-json"))
     }

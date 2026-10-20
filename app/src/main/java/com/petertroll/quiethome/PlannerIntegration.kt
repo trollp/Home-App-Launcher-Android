@@ -78,7 +78,7 @@ class CalendarChangeObserver(context: Context, private val changed: () -> Unit) 
 }
 
 object PlannerRequestFactory {
-    private const val SYSTEM = "You are the embedded daily planner for one owner in Stockholm. Use only supplied snapshot facts and reference IDs. Return concise JSON matching the strict schema. Respect sleep hours, proactive budget, hard constraints, and action limits. Never invent facts, URLs, intent URIs, secrets, diagnoses, shame, or unsupported actions."
+    private const val SYSTEM = "You are the embedded daily planner for one owner in Stockholm. Use only supplied snapshot facts and reference IDs. Return concise JSON matching the strict schema. Respect sleep hours, proactive budget, hard constraints, and action limits. Health values are neutral observations, not medical advice: never diagnose, infer readiness or recovery, or invent Garmin metrics such as Body Battery, stress, HRV, training load, or VO2 max. Never invent facts, URLs, intent URIs, secrets, diagnoses, shame, or unsupported actions."
     private fun system(snapshotJson: String): String {
         val profile = runCatching { JSONObject(snapshotJson).optJSONObject("profile") }.getOrNull()
         fun lines(key: String): String = profile?.optJSONArray(key)?.let { values ->
@@ -175,18 +175,21 @@ class ActivityLogStore(context: Context) {
 class PlannerCoordinator(private val context: Context) {
     fun immediateFallback(): PlannerPlan {
         val prefs = PreferencesStore(context).load(); val now = Instant.now()
-        val snapshot = SnapshotBuilder.build(now, ZoneId.systemDefault(), prefs.plannerProfile, emptyList(), prefs.localTasks, WeatherRepository(context).cached()?.headline(), emptyList(), ActivityLogStore(context).load(), prefs.routines, calendarStatus = SourceStatus.UNAVAILABLE, allowedAppPackages = allowedPackages(prefs.hiddenPackages))
+        val health = HealthSummaryCache(context).load()?.copy(cached = true) ?: HealthSummary()
+        val snapshot = SnapshotBuilder.build(now, ZoneId.systemDefault(), prefs.plannerProfile, emptyList(), prefs.localTasks, WeatherRepository(context).cached()?.headline(), emptyList(), ActivityLogStore(context).load(), prefs.routines, calendarStatus = SourceStatus.UNAVAILABLE, allowedAppPackages = allowedPackages(prefs.hiddenPackages), health = health)
         return FallbackPlanner.create(snapshot, prefs.plannerProfile, now).also { PlanStore(context).save(it, PlanSource.BOOTSTRAP_FALLBACK) }
     }
-    fun refresh(calendarBypass: Boolean = false): PlannerPlan {
+    fun refresh(calendarBypass: Boolean = false, background: Boolean = false): PlannerPlan {
         val prefs = PreferencesStore(context).load(); val now = Instant.now(); val collection = CalendarProviderCollector(context).collect(now, prefs.plannerProfile).getOrElse { CalendarCollection.Failed(it.message ?: "Unavailable") }
         val events = (collection as? CalendarCollection.Available)?.events.orEmpty()
         val status = when (collection) { is CalendarCollection.Available -> SourceStatus.AVAILABLE; CalendarCollection.PermissionMissing -> SourceStatus.PERMISSION_MISSING; CalendarCollection.NoSyncedCalendars -> SourceStatus.NO_SYNCED_CALENDARS; is CalendarCollection.Failed -> SourceStatus.UNAVAILABLE }
         val usageSummary = UsageStatsAdapter(context).summary(now.toEpochMilli(), ZoneId.systemDefault())
         val usage = (usageSummary as? UsageSummary.Available)?.todayApps.orEmpty().map { it.packageName to (it.durationMillis / 60_000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() }
         val weather = WeatherRepository(context).cached()
-        val snapshot = SnapshotBuilder.build(now, ZoneId.systemDefault(), prefs.plannerProfile, events, prefs.localTasks, weather?.headline(), usage, ActivityLogStore(context).load(), prefs.routines, status, if (status == SourceStatus.AVAILABLE) now.toEpochMilli() else null, weather?.fetchedAt?.toEpochMilli(), if (usageSummary is UsageSummary.Available) now.toEpochMilli() else null, allowedPackages(prefs.hiddenPackages))
-        val signature = snapshot.copy(generatedAtEpochMillis = 0, freshness = snapshot.freshness.copy(calendarEpochMillis = snapshot.freshness.calendarEpochMillis?.let { 0 }, weatherEpochMillis = snapshot.freshness.weatherEpochMillis?.let { 0 }, tasksEpochMillis = 0, usageEpochMillis = snapshot.freshness.usageEpochMillis?.let { 0 })).hashCode().toString()
+        val health = runCatching { HealthConnectCollector(context).collect(now, prefs.plannerProfile, background) }
+            .getOrElse { HealthSummaryCache(context).load()?.copy(cached = true) ?: HealthSummary() }
+        val snapshot = SnapshotBuilder.build(now, ZoneId.systemDefault(), prefs.plannerProfile, events, prefs.localTasks, weather?.headline(), usage, ActivityLogStore(context).load(), prefs.routines, status, if (status == SourceStatus.AVAILABLE) now.toEpochMilli() else null, weather?.fetchedAt?.toEpochMilli(), if (usageSummary is UsageSummary.Available) now.toEpochMilli() else null, allowedPackages(prefs.hiddenPackages), health)
+        val signature = snapshot.copy(generatedAtEpochMillis = 0, freshness = snapshot.freshness.copy(calendarEpochMillis = snapshot.freshness.calendarEpochMillis?.let { 0 }, weatherEpochMillis = snapshot.freshness.weatherEpochMillis?.let { 0 }, tasksEpochMillis = 0, usageEpochMillis = snapshot.freshness.usageEpochMillis?.let { 0 }, healthEpochMillis = snapshot.freshness.healthEpochMillis?.let { 0 })).hashCode().toString()
         val plans = PlanStore(context)
         if (!calendarBypass && plans.isFresh(signature)) {
             val cached = plans.entry()!!.plan
@@ -207,7 +210,7 @@ class PlannerCoordinator(private val context: Context) {
     }
     companion object { fun schedule(context: Context) { val request = PeriodicWorkRequestBuilder<PlannerWorker>(30, TimeUnit.MINUTES).setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build()).build(); WorkManager.getInstance(context).enqueueUniquePeriodicWork("planner-refresh", ExistingPeriodicWorkPolicy.UPDATE, request) } }
 }
-class PlannerWorker(context: Context, params: WorkerParameters) : Worker(context, params) { override fun doWork(): Result = runCatching { PlannerCoordinator(applicationContext).refresh(); Result.success() }.getOrElse { Result.retry() } }
+class PlannerWorker(context: Context, params: WorkerParameters) : Worker(context, params) { override fun doWork(): Result = runCatching { PlannerCoordinator(applicationContext).refresh(background = true); Result.success() }.getOrElse { Result.retry() } }
 
 object MeetingPrepScheduler {
     const val CHANNEL_MEETING = PlannerChannels.MEETING

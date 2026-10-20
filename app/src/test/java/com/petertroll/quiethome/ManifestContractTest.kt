@@ -52,6 +52,17 @@ class ManifestContractTest {
         assertFalse(manifest.contains("oauth", ignoreCase = true))
     }
 
+    @Test fun `health connect contract is read only and has provider visibility and rationale`() {
+        listOf("READ_SLEEP", "READ_EXERCISE", "READ_HEART_RATE", "READ_STEPS", "READ_TOTAL_CALORIES_BURNED", "READ_HEALTH_DATA_IN_BACKGROUND").forEach {
+            assertTrue(manifest.contains("android.permission.health.$it"))
+        }
+        assertFalse(manifest.contains("android.permission.health.WRITE_"))
+        assertTrue(manifest.contains("com.google.android.apps.healthdata"))
+        assertTrue(manifest.contains("android.intent.action.VIEW_PERMISSION_USAGE"))
+        assertTrue(manifest.contains("android.intent.category.HEALTH_PERMISSIONS"))
+        assertTrue(manifest.contains("android.permission.START_VIEW_PERMISSION_USAGE"))
+    }
+
     private fun org.w3c.dom.NodeList.elements(): List<Element> =
         (0 until length).map { item(it) as Element }
 
